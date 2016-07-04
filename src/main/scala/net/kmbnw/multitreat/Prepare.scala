@@ -18,24 +18,35 @@ package net.kmbnw.multitreat
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.DataFrame
 
+// e.g. designNumeric("funded_amnt", "emp_title", df).show()
 def designNumeric(
 		targetCol: String, groupCol: String, df: DataFrame) : DataFrame = {
-	val sampleMean = df.select(avg(targetCol)).first().getDouble(0)
-	val sampleSd = df.select(stddev(targetCol)).first().getDouble(0)
 
-  val targetMeanCol = targetCol + "_mean"
+	// overall dataframe mean and standard deviation
+	val dfNoNA = df.select(targetCol, groupCol).na.drop()
+	val naFill = 1e-6
+	val sampleMean = dfNoNA.select(avg(targetCol)).first().getDouble(0)
+	val sampleSd = dfNoNA.select(stddev(targetCol)).first().getDouble(0)
 
-	val dfMeans = df.groupBy(groupCol).agg(
-		stddev_pop(targetCol).as(targetCol + "_sd"),
-		avg(targetCol).as(targetMeanCol),
+	// using the simple version of lambda from the paper: lambda = n / (m + n)
+	// where m = group_sd / sample_sd
+	// there is a fill-in for when only one sample exists of 1e-6
+	// TODO I would like to make lambda user-settable
+	val dfMeans = dfNoNA.groupBy(groupCol).agg(
+		avg(targetCol).as("mean"),
 		count(targetCol).divide(
 			stddev(targetCol).divide(sampleSd)
 		    .plus(count(targetCol))).as("lambda")
+	).na.fill(naFill, Array("lambda"))
+
+	// this is the Bayesian formula:
+	// lambda * group_mean + (1 - lambda) * sample_mean
+	val ret = dfMeans.withColumn(
+		"S",
+		dfMeans.col("lambda").multiply(
+			dfMeans.col("mean")).plus(
+				dfMeans.col("lambda").minus(1).multiply(-1 * sampleMean))
 	)
 
-	val ret = dfMeans.withColumn("S", dfMeans.col("lambda").multiply(
-		dfMeans.col(targetMeanCol)).plus(
-			dfMeans.col("lambda").minus(1).multiply(-1 * sampleMean))
-	)
 	return ret
 }
