@@ -52,12 +52,14 @@ class Multitreat(
 		// lambda * group_mean + (1 - lambda) * sample_mean
 		val lambda = dfMeans.col("lambda")
 		val groupMean = dfMeans.col("mean")
+		val treatedCol = groupCol + "_catN"
+
 		val ret = dfMeans.withColumn(
-			"S",
+			treatedCol,
 			lambda.multiply(groupMean).plus(
 					lambda.minus(1).multiply(-1 * sampleMean))
 		)
 
-		return ret
+		return ret.select(groupCol, treatedCol)
 	}
 }
