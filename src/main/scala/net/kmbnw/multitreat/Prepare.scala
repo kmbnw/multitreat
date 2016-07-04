@@ -41,11 +41,12 @@ def designNumeric(
 
 	// this is the Bayesian formula:
 	// lambda * group_mean + (1 - lambda) * sample_mean
+	val lambda = dfMeans.col("lambda")
+	val groupMean = dfMeans.col("mean")
 	val ret = dfMeans.withColumn(
 		"S",
-		dfMeans.col("lambda").multiply(
-			dfMeans.col("mean")).plus(
-				dfMeans.col("lambda").minus(1).multiply(-1 * sampleMean))
+		lambda.multiply(groupMean).plus(
+				lambda.minus(1).multiply(-1 * sampleMean))
 	)
 
 	return ret
