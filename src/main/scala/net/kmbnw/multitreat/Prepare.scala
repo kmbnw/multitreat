@@ -28,6 +28,16 @@ class Multitreat(
 		).toMap
 	}
 
+	def applyTreatments(
+			df: DataFrame,
+			treatments: Map[String, DataFrame]): DataFrame = {
+				var treated: DataFrame = df
+				for ((colname, treatment) <- treatments) {
+					treated = treated.join(treatment, colname)
+				}
+				return treated
+	}
+
 	// e.g. designNumeric("funded_amnt", "emp_title", df).show()
 	private def designNumericOnCol(df: DataFrame, groupCol: String): DataFrame = {
 
