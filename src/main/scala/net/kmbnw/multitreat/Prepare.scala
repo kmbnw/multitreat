@@ -18,6 +18,11 @@ package net.kmbnw.multitreat
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.DataFrame
 
+// e.g. val treatmentPlan = new Multitreat("salary", List("job_title", "employer"))
+// val treatments = treatmentPlan.designNumeric(df)
+// treatments.show()
+// val treated = treatmentPlan.applyTreatments(df, treatments)
+
 class Multitreat(
 		val targetCol: String,
 		val treatmentCols: Seq[String]) {
@@ -32,13 +37,13 @@ class Multitreat(
 			df: DataFrame,
 			treatments: Map[String, DataFrame]): DataFrame = {
 				var treated: DataFrame = df
+				// TODO this can probably be done with fold or reduce
 				for ((colname, treatment) <- treatments) {
 					treated = treated.join(treatment, colname)
 				}
 				return treated
 	}
 
-	// e.g. designNumeric("funded_amnt", "emp_title", df).show()
 	private def designNumericOnCol(df: DataFrame, groupCol: String): DataFrame = {
 
 		// overall dataframe mean and standard deviation
