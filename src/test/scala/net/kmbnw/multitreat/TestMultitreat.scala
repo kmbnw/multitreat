@@ -21,7 +21,7 @@ import com.holdenkarau.spark.testing._
 
 
 class test extends DataFrameSuiteBase {
-  private val tol = 0.0001
+  private val tol = 0.001
 
   test("designNumericSingleGroup") {
     val sqlCtx = sqlContext
@@ -44,5 +44,42 @@ class test extends DataFrameSuiteBase {
     intercept[org.scalatest.exceptions.TestFailedException] {
         assertDataFrameEquals(input1, input2) // not equal
     }*/
+  }
+
+  test("designNumericMultiGroup") {
+    val sqlCtx = sqlContext
+    import sqlCtx.implicits._
+
+    val expected = sqlContext.read.json("src/test/resources/salary_multi_group.json")
+    val df = expected.drop("title_catN").drop("employer_catN")
+
+    val treatmentPlan = new Multitreat("amount", List("title", "employer"))
+    val treatments = treatmentPlan.designNumeric(df)
+    val treated = treatmentPlan.applyTreatments(df, treatments)
+
+    // apparently these have to be explicitly ordered or the equality check can fail
+    assertDataFrameApproximateEquals(
+      expected.select("amount", "employer", "title", "title_catN", "employer_catN"),
+      treated.select("amount", "employer", "title", "title_catN", "employer_catN"),
+      tol)
+  }
+
+  // single row means standard deviation of zero; ensure that is OK
+  test("designNumericOneRow") {
+    val sqlCtx = sqlContext
+    import sqlCtx.implicits._
+
+    val expected = sqlContext.read.json("src/test/resources/salary_one_row.json")
+    val df = expected.drop("title_catN")
+
+    val treatmentPlan = new Multitreat("amount", List("title"))
+    val treatments = treatmentPlan.designNumeric(df)
+    val treated = treatmentPlan.applyTreatments(df, treatments)
+
+    // apparently these have to be explicitly ordered or the equality check can fail
+    assertDataFrameApproximateEquals(
+      expected.select("amount", "employer", "title", "title_catN"),
+      treated.select("amount", "employer", "title", "title_catN"),
+      tol)
   }
 }
