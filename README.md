@@ -1,5 +1,5 @@
 # multitreat
-Variable treatment library in Spark, inspired by https://github.com/WinVector/vtreat
+A simple variable treatment library inspired by https://github.com/WinVector/vtreat
 
 See also the paper "A Preprocessing Scheme for High Cardinality Categorical Attributes in Classification and Prediction Problems", Micci-Barreca, Daniele.
 
