@@ -18,12 +18,12 @@ package net.kmbnw.multitreat
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.DataFrame
 
-// e.g. val treatmentPlan = new Multitreat("salary", List("job_title", "employer"))
+// e.g. val treatmentPlan = new TreatmentPlan("salary", List("job_title", "employer"))
 // val treatments = treatmentPlan.designNumeric(df)
 // treatments.show()
 // val treated = treatmentPlan.applyTreatments(df, treatments)
 
-class Multitreat(
+class TreatmentPlan(
 		val targetCol: String,
 		val treatmentCols: Seq[String]) {
 
