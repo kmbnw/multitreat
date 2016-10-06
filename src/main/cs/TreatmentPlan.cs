@@ -14,27 +14,59 @@
  * limitations under the License.
  */
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace kmbnw.Multitreat
 {
-    public sealed class TreatmentPlan
+    public sealed class CategoryTreatmentPlan
     {
-        public TreatmentPlan()
+        private readonly Dictionary<string, List<float>> m_groups = new Dictionary<string, List<float>>();
+        private readonly ReaderWriterLockSlim m_groupLock = new ReaderWriterLockSlim();
+
+        public CategoryTreatmentPlan()
         {  }
 
-        public Dictionary<string, float> DesignNumeric(float[] target, string[] categorical) {
+        public void Add(string category, float target)
+        {
+            try
+            {
+                m_groupLock.EnterWriteLock();
+                if (!m_groups.ContainsKey(category))
+                {
+                    m_groups[category] = new List<float>();
+                }
+                m_groups[category].Add(target);
+            }
+            finally
+            {
+                m_groupLock.ExitWriteLock();
+            }
+        }
+
+        public Dictionary<string, float> BuildTreatments() {
             // overall dataframe mean and standard deviation
             float naFill = 1e-6f;
-            float sampleMean = target.Average();
-            float sampleSd = SampleStdDev(target);
 
             var means = new Dictionary<string, float>();
             var stdDevs = new Dictionary<string, float>();
             var counts = new Dictionary<string, int>();
+            float sampleMean;
+            float sampleSd;
 
-            ComputeGroupStats(target, categorical, means, stdDevs, counts);
+            try
+            {
+                m_groupLock.EnterReadLock();
+                sampleMean = m_groups.Values.SelectMany(x => x).Average();
+                sampleSd = SampleStdDev(m_groups.Values.SelectMany(x => x));
+                ComputeGroupStats(means, stdDevs, counts);
+            }
+            finally
+            {
+                m_groupLock.ExitReadLock();
+            }
 
             var treatment = new Dictionary<string, float>();
             foreach (var k in means.Keys)
@@ -60,39 +92,20 @@ namespace kmbnw.Multitreat
             return treatment;
         }
 
-        public float[] ApplyTreatment(string[] xs, Dictionary<string, float> treatment)
-        {
-            // now map the group-encoded values back onto the original array
-            return xs.Select(x => treatment[x]).ToArray();
-        }
-
-        private float SampleStdDev(float[] xs) 
+        private float SampleStdDev(IEnumerable<float> xs) 
         {
             var mean = xs.Average();
 
             return (float) Math.Sqrt((xs.Select(x => Math.Pow(x - mean, 2))
-                        .Sum() / (xs.Length - 1)));
+                        .Sum() / (xs.Count() - 1)));
         }
 
         private void ComputeGroupStats(
-                float[] target,
-                string[] categorical,
                 Dictionary<string, float> means,
                 Dictionary<string, float> stdDevs,
                 Dictionary<string, int> counts)
         {
-            var groups = new Dictionary<string, List<float>>();
-            for (int i = 0; i < categorical.Length; i++)
-            {
-                string category = categorical[i];
-                if (!groups.ContainsKey(category))
-                {
-                    groups[category] = new List<float>();
-                }
-                groups[category].Add(target[i]);
-            }
-
-            foreach (var item in groups)
+            foreach (var item in m_groups)
             {
                 means[item.Key] = item.Value.Average();
                 // TODO be more efficient
@@ -108,12 +121,20 @@ namespace kmbnw.Multitreat
             var titles = new[] { "A", "A", "A", "A", "B", "B" };
             var emps = new[] { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
 
-            var treatmentPlan = new TreatmentPlan();
-            var titleTreat = treatmentPlan.DesignNumeric(target, titles);
-            var empTreat = treatmentPlan.DesignNumeric(target, emps);
+            var titlePlan = new CategoryTreatmentPlan();
+            var empPlan = new CategoryTreatmentPlan();
 
-            var titleTreated = treatmentPlan.ApplyTreatment(titles, titleTreat);
-            var empTreated = treatmentPlan.ApplyTreatment(emps, empTreat);
+            Parallel.For(0, target.Length, idx =>
+            {
+                titlePlan.Add(titles[idx], target[idx]);    
+                empPlan.Add(emps[idx], target[idx]);
+            });
+
+            var titleTreat = titlePlan.BuildTreatments();
+            var empTreat = empPlan.BuildTreatments();
+
+            var titleTreated = titles.Select(x => titleTreat[x]);
+            var empTreated = emps.Select(x => empTreat[x]);
 
             Console.WriteLine("Titles: " + string.Join(", ", titleTreated));
             Console.WriteLine("Employers: " + string.Join(", ", empTreated));
