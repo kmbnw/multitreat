@@ -13,19 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- #include <vector>
+#include <vector>
 
 #ifndef KMBNW_MULTITREAT_H
 #define KMBNW_MULTITREAT_H
 
-class CategoryTreatmentPlan {
-    public:
-        CategoryTreatmentPlan();
-        void add_pair(std::string category, float target);
+namespace multitreat {
+    class CategoryTreatmentPlan {
+        public:
+            CategoryTreatmentPlan();
+            void add_pair(std::string category, float target);
 
-    private:
-        // the mapping from a category to the numeric targets
-        std::map<std::string, std::vector<float> > _group_targets;
-};
+        private:
+            // the mapping from a category to the numeric targets
+            std::map<std::string, std::vector<float> > _group_targets;
 
+            void fill_group_stats(
+                std::map<std::string, float> & means,
+                std::map<std::string, float> & stdDevs,
+                std::map<std::string, uint> & counts);
+    };
+}
 #endif //KMBNW_MULTITREAT_H
