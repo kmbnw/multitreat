@@ -30,8 +30,8 @@ namespace multitreat {
 
             void fill_group_stats(
                 std::map<std::string, float> & means,
-                std::map<std::string, float> & stdDevs,
-                std::map<std::string, uint> & counts);
+                std::map<std::string, float> & std_devs,
+                std::map<std::string, uint>  & counts);
     };
 }
 #endif //KMBNW_MULTITREAT_H

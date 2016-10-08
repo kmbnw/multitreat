@@ -20,12 +20,25 @@
 #include <map>
 #include <numeric>
 #include <vector>
+#include <algorithm>
+#include <cmath>
 #include "multitreat.h"
 
 namespace multitreat {
-    //arithmetic mean of a vector
+    // arithmetic mean of a vector
     float mean(std::vector<float> const& v) {
         return (float) std::accumulate(v.begin(), v.end(), 0.0l) / v.size();
+    }
+
+    // sample standard deviation of vector
+    float stddev(std::vector<float> const& v, float v_mean) {
+        // the combo of std::for_each, std::accumulate, and a lambda function
+        // is just a little too opaque for my taste
+        double sd = 0.0;
+        for (std::vector<float>::const_iterator it = v.begin(); it != v.end(); ++it) {
+            sd += pow(*it - v_mean, 2.0);
+        }
+        return (float) sqrt(sd / (v.size() - 1));
     }
 
     CategoryTreatmentPlan::CategoryTreatmentPlan() {
@@ -39,8 +52,8 @@ namespace multitreat {
 
     void CategoryTreatmentPlan::fill_group_stats(
         std::map<std::string, float> & means,
-        std::map<std::string, float> & stdDevs,
-        std::map<std::string, uint> & counts) {
+        std::map<std::string, float> & std_devs,
+        std::map<std::string, uint>  & counts) {
 
         std::map<std::string, std::vector<float> >::iterator it;
         for (it = _group_targets.begin(); it != _group_targets.end(); ++it) {
@@ -48,8 +61,8 @@ namespace multitreat {
             float group_mean = mean(it->second);
 
             means[key] = group_mean;
+            std_devs[key] = stddev(it->second, group_mean);
             counts[key] = it->second.size();
-            // TODO std dev
         }
     }
 }
