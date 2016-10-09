@@ -25,9 +25,24 @@
 #include "multitreat.h"
 
 namespace multitreat {
+    double sum(const std::vector<float> &v) {
+        return std::accumulate(v.begin(), v.end(), 0.0l);
+    }
+
     // arithmetic mean of a vector
     float mean(const std::vector<float> &v) {
-        return (float) std::accumulate(v.begin(), v.end(), 0.0l) / v.size();
+        return (float) sum(v) / v.size();
+    }
+
+    // arithmetic mean of all vectors in the map
+    float mean(const std::map<std::string, std::vector<float>> &m) {
+        double total = 0.0;
+        int count = 0;
+        for (const auto& kv: m) {
+            total += sum(kv.second);
+            count += kv.second.size();
+        }
+        return total / count;
     }
 
     // sample standard deviation of vector
@@ -69,6 +84,7 @@ namespace multitreat {
         float sample_mean = 0.0f;
         float sample_sd = 0.0f;
 
+        sample_mean = mean(_group_targets);
         /*
         sampleMean = m_groups.Values.SelectMany(x => x).Average();
         sampleSd = SampleStdDev(m_groups.Values.SelectMany(x => x));
