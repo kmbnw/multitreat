@@ -54,14 +54,13 @@ namespace multitreat {
         std::map<std::string, float> &std_devs,
         std::map<std::string, uint>  &counts) {
 
-        std::map<std::string, std::vector<float> >::iterator it;
-        for (it = _group_targets.begin(); it != _group_targets.end(); ++it) {
-            std::string key = it->first;
-            float group_mean = mean(it->second);
+        for (const auto& kv : _group_targets) {
+            std::string key = kv.first;
+            float group_mean = mean(kv.second);
 
             means[key] = group_mean;
-            std_devs[key] = stddev(it->second, group_mean);
-            counts[key] = it->second.size();
+            std_devs[key] = stddev(kv.second, group_mean);
+            counts[key] = kv.second.size();
         }
     }
 
@@ -101,18 +100,4 @@ namespace multitreat {
             treatment[key] = lambda * group_mean + (1 - lambda) * sample_mean;
         }
     }
-/*
-
-
-var treatment = new Dictionary<string, float>();
-foreach (var k in means.Keys)
-{
-
-
-// Bayesian formula from the paper
-treatment[k] = lambda * groupMean + (1 - lambda) * sampleMean;
-}
-
-return treatment;
-}*/
 }
