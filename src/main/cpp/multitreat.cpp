@@ -35,6 +35,8 @@ namespace multitreat {
     }
 
     // arithmetic mean of all vectors in the map
+    // TODO I should be able to do this with weighted averages
+    // which would avoid iterating over all the values again
     float mean(const std::map<std::string, std::vector<float>> &m) {
         double total = 0.0;
         int count = 0;
@@ -54,6 +56,19 @@ namespace multitreat {
             sd += pow(x - v_mean, 2.0);
         }
         return (float) sqrt(sd / (v.size() - 1));
+    }
+
+    // sample standard deviation of map
+    float stddev(const std::map<std::string, std::vector<float>> &m, float v_mean) {
+        double sd = 0.0;
+        int count = 0;
+        for (const auto& kv: m) {
+            for (const auto& x: kv.second) {
+                sd += pow(x - v_mean, 2.0);
+            }
+            count += kv.second.size();
+        }
+        return sqrt(sd / (count - 1));
     }
 
     CategoryTreatmentPlan::CategoryTreatmentPlan() {
@@ -85,10 +100,7 @@ namespace multitreat {
         float sample_sd = 0.0f;
 
         sample_mean = mean(_group_targets);
-        /*
-        sampleMean = m_groups.Values.SelectMany(x => x).Average();
-        sampleSd = SampleStdDev(m_groups.Values.SelectMany(x => x));
-        */
+        sample_sd = stddev(_group_targets, sample_mean);
 
         std::map<std::string, float> means;
         std::map<std::string, float> std_devs;
