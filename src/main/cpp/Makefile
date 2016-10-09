@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-g -Wall -shared -fPIC
+CFLAGS=-g -Wall -shared -fPIC -std=c++11
 
 SRC=multitreat
 TARGET=libmultitreat
