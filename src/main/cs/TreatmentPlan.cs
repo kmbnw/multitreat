@@ -34,19 +34,19 @@ namespace kmbnw.Multitreat
         {  }
 
         /// <summary>
-        /// Construct a mapping from integer-valued category to Bayes-adjusted response.
+        /// Construct a mapping from category to Bayes-adjusted response.
         ///
         /// The output value is described in 
         ///  "A Preprocessing Scheme for High Cardinality Categorical Attributes in 
         ///  Classification and Prediction Problems", Micci-Barreca, Daniele.
         /// </summary>
-        /// <param name="catGroups">A dictionary from each distinct integer category
+        /// <param name="catGroups">A dictionary from each distinct category
         /// to all of the response values associated with that category.
         /// </param>
         /// <param name="naValue">The value which represents "missing" or "NA".
         /// Currently the mean of all the response values in <b>catGroups</b>.
         /// </param>
-        /// <returns>A dictionary from integer category to re-encoded response.</returns>
+        /// <returns>A dictionary from category to re-encoded response.</returns>
         public Dictionary<K, float> BuildTreatments<T>(
                 Dictionary<K, T> catGroups, out float naValue) where T: IEnumerable<float>
         {
