@@ -37,9 +37,9 @@ namespace multitreat {
     // arithmetic mean of all vectors in the map
     // TODO I should be able to do this with weighted averages
     // which would avoid iterating over all the values again
-    float mean(const std::map<std::string, std::vector<float>> &m) {
+    float mean(const std::map<uint, std::vector<float>> &m) {
         double total = 0.0;
-        int count = 0;
+        ulong count = 0;
         for (const auto& kv: m) {
             total += sum(kv.second);
             count += kv.second.size();
@@ -59,9 +59,9 @@ namespace multitreat {
     }
 
     // sample standard deviation of map
-    float stddev(const std::map<std::string, std::vector<float>> &m, float v_mean) {
+    float stddev(const std::map<uint, std::vector<float>> &m, float v_mean) {
         double sd = 0.0;
-        int count = 0;
+        ulong count = 0;
         for (const auto& kv: m) {
             for (const auto& x: kv.second) {
                 sd += pow(x - v_mean, 2.0);
@@ -72,20 +72,16 @@ namespace multitreat {
     }
 
     CategoryTreatmentPlan::CategoryTreatmentPlan() {
-        _group_targets.clear();
-    }
-
-    void CategoryTreatmentPlan::add_pair(std::string category, float target) {
-        _group_targets[category].push_back(target);
     }
 
     void CategoryTreatmentPlan::fill_group_stats(
-        std::map<std::string, float> &means,
-        std::map<std::string, float> &std_devs,
-        std::map<std::string, uint>  &counts) {
+        const std::map<uint, std::vector<float>> &cat_groups,
+        std::map<uint, float> &means,
+        std::map<uint, float> &std_devs,
+        std::map<uint, uint>  &counts) {
 
-        for (const auto& kv : _group_targets) {
-            std::string key = kv.first;
+        for (const auto& kv : cat_groups) {
+            uint key = kv.first;
             float group_mean = mean(kv.second);
 
             means[key] = group_mean;
@@ -94,22 +90,24 @@ namespace multitreat {
         }
     }
 
-    void CategoryTreatmentPlan::build_treatment(std::map<std::string, float> &treatment) {
+    void CategoryTreatmentPlan::build_treatment(
+            const std::map<uint, std::vector<float>> &cat_groups,
+            std::map<uint, float> &treatment) {
         float na_fill = 1e-6f;
         float sample_mean = 0.0f;
         float sample_sd = 0.0f;
 
-        sample_mean = mean(_group_targets);
-        sample_sd = stddev(_group_targets, sample_mean);
+        sample_mean = mean(cat_groups);
+        sample_sd = stddev(cat_groups, sample_mean);
 
-        std::map<std::string, float> means;
-        std::map<std::string, float> std_devs;
-        std::map<std::string, uint> counts;
+        std::map<uint, float> means;
+        std::map<uint, float> std_devs;
+        std::map<uint, uint> counts;
 
-        fill_group_stats(means, std_devs, counts);
+        fill_group_stats(cat_groups, means, std_devs, counts);
 
         for (const auto& kv : means) {
-            std::string key = kv.first;
+            uint key = kv.first;
             float group_mean = kv.second;
             // using the simple version of lambda from the paper:
             // lambda = n / (m + n)
@@ -128,4 +126,65 @@ namespace multitreat {
             treatment[key] = lambda * group_mean + (1 - lambda) * sample_mean;
         }
     }
+}
+
+int main() {
+    std::vector<float> target = { 25.0, 50.0, 75.0, 100.0, 100.0, 300.0 };
+    std::vector<std::string> titles = { "A", "A", "A", "A", "B", "B" };
+    std::vector<std::string> emps = { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
+
+    std::vector<float> title_a(target.begin(), target.begin() + 4);
+    std::vector<float> title_b(target.begin() + 4, target.end());
+
+    std::vector<float> emp_a(target.begin(), target.begin() + 2);
+    std::vector<float> emp_b(target.begin() + 2, target.end());
+
+    std::map<uint, std::vector<float>> title_groups;
+    std::map<uint, std::vector<float>> emp_groups;
+
+    title_groups[11] = title_a;
+    title_groups[20] = title_b;
+    emp_groups[303] = emp_a;
+    emp_groups[201] = emp_b;
+
+    multitreat::CategoryTreatmentPlan plan;
+
+    std::map<uint, float> title_treated;
+    std::map<uint, float> emp_treated;
+
+    plan.build_treatment(title_groups, title_treated);
+    plan.build_treatment(emp_groups, emp_treated);
+
+    std::cout << "Titles: " << std::endl;
+
+    for (auto& kv : title_treated) {
+        std::cout << kv.first << ": " << kv.second << std::endl;
+    }
+
+    std::cout << std::endl << "Employers: " << std::endl;
+
+    for (auto& kv : emp_treated) {
+        std::cout << kv.first << ": " << kv.second << std::endl;
+    }
+
+    /*
+       Expecting this output:
+       Titles:
+       11: 65.9761
+       20: 161.653
+
+       Employers:
+       201: 136.296
+       303: 43.3426
+
+       From this original input:
+{"title": "A", "amount": 25, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
+{"title": "A", "amount": 50, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
+{"title": "A", "amount": 75, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
+{"title": "A", "amount": 100, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
+{"title": "B", "amount": 100, "employer": "Evil Inc.", "title_catN": 161.6528632, "employer_catN": 136.2962514}
+{"title": "B", "amount": 300, "employer": "Evil Inc.", "title_catN": 161.6528632, "employer_catN": 136.2962514}
+ * */
+
+    return 0;
 }

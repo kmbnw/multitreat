@@ -18,21 +18,23 @@
 #ifndef KMBNW_MULTITREAT_H
 #define KMBNW_MULTITREAT_H
 
+typedef unsigned int uint;
+typedef unsigned long ulong;
+
 namespace multitreat {
     class CategoryTreatmentPlan {
         public:
             CategoryTreatmentPlan();
-            void add_pair(std::string category, float target);
-            void build_treatment(std::map<std::string, float> &treatment);
+            void build_treatment(
+                const std::map<uint, std::vector<float>> &category_groups,
+                std::map<uint, float> &treatment);
 
         private:
-            // the mapping from a category to the numeric targets
-            std::map<std::string, std::vector<float> > _group_targets;
-
             void fill_group_stats(
-                std::map<std::string, float> &means,
-                std::map<std::string, float> &std_devs,
-                std::map<std::string, uint>  &counts);
+                const std::map<uint, std::vector<float>> &category_groups,
+                std::map<uint, float> &means,
+                std::map<uint, float> &std_devs,
+                std::map<uint, uint>  &counts);
     };
 }
 #endif //KMBNW_MULTITREAT_H
