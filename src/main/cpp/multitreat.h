@@ -25,9 +25,15 @@ namespace multitreat {
     class CategoryTreatmentPlan {
         public:
             CategoryTreatmentPlan();
+
+            // category_groups: responses for each category
+            // treatment: output of category to Bayes-adjusted encoded response
+            // na_value: value to use for unknown categories (currently is
+            // overall mean)
             void build_treatment(
                 const std::map<uint, std::vector<float>> &category_groups,
-                std::map<uint, float> &treatment);
+                std::map<uint, float> &treatment,
+                float &na_value);
 
         private:
             void fill_group_stats(

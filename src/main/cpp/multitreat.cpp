@@ -92,13 +92,15 @@ namespace multitreat {
 
     void CategoryTreatmentPlan::build_treatment(
             const std::map<uint, std::vector<float>> &cat_groups,
-            std::map<uint, float> &treatment) {
+            std::map<uint, float> &treatment,
+            float &na_value) {
         float na_fill = 1e-6f;
         float sample_mean = 0.0f;
         float sample_sd = 0.0f;
 
         sample_mean = mean(cat_groups);
         sample_sd = stddev(cat_groups, sample_mean);
+        na_value = sample_mean;
 
         std::map<uint, float> means;
         std::map<uint, float> std_devs;
@@ -151,9 +153,11 @@ int main() {
 
     std::map<uint, float> title_treated;
     std::map<uint, float> emp_treated;
+    float title_na;
+    float emp_na;
 
-    plan.build_treatment(title_groups, title_treated);
-    plan.build_treatment(emp_groups, emp_treated);
+    plan.build_treatment(title_groups, title_treated, title_na);
+    plan.build_treatment(emp_groups, emp_treated, emp_na);
 
     std::cout << "Titles: " << std::endl;
 
@@ -161,21 +165,27 @@ int main() {
         std::cout << kv.first << ": " << kv.second << std::endl;
     }
 
+    std::cout << "Title NA Value: " << title_na << std::endl;
+
     std::cout << std::endl << "Employers: " << std::endl;
 
     for (auto& kv : emp_treated) {
         std::cout << kv.first << ": " << kv.second << std::endl;
     }
 
+    std::cout << "Employer NA Value: " << emp_na << std::endl;
+
     /*
        Expecting this output:
        Titles:
        11: 65.9761
        20: 161.653
+       Title NA Value: 108.333
 
        Employers:
        201: 136.296
        303: 43.3426
+       Employer NA Value: 108.333
 
        From this original input:
 {"title": "A", "amount": 25, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
