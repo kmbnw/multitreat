@@ -21,7 +21,14 @@ using System.Linq;
 
 namespace kmbnw.Multitreat
 {
-    public class CategoryTreatmentPlan
+
+    /// <summary>
+    /// Create a new treatment plan whose category type is K.
+    ///
+    /// K is used as a dictionary key and thus should follow all the
+    /// rules necessary for that to work correctly.
+    /// </summary>
+    public class CategoryTreatmentPlan<K>
     {
         public CategoryTreatmentPlan()
         {  }
@@ -40,15 +47,15 @@ namespace kmbnw.Multitreat
         /// Currently the mean of all the response values in <b>catGroups</b>.
         /// </param>
         /// <returns>A dictionary from integer category to re-encoded response.</returns>
-        public Dictionary<int, float> BuildTreatments<T>(
-                Dictionary<int, T> catGroups, out float naValue) where T: IEnumerable<float>
+        public Dictionary<K, float> BuildTreatments<T>(
+                Dictionary<K, T> catGroups, out float naValue) where T: IEnumerable<float>
         {
             // overall dataframe mean and standard deviation
             float naFill = 1e-6f;
 
-            var means = new Dictionary<int, float>();
-            var stdDevs = new Dictionary<int, float>();
-            var counts = new Dictionary<int, int>();
+            var means = new Dictionary<K, float>();
+            var stdDevs = new Dictionary<K, float>();
+            var counts = new Dictionary<K, int>();
 
             float sampleMean = catGroups.Values.SelectMany(x => x).Average();
             float sampleSd = SampleStdDev(catGroups.Values.SelectMany(x => x));
@@ -56,7 +63,7 @@ namespace kmbnw.Multitreat
 
             naValue = sampleMean;
 
-            var treatment = new Dictionary<int, float>();
+            var treatment = new Dictionary<K, float>();
             foreach (var k in means.Keys)
             {
                 var groupMean = means[k];
@@ -89,10 +96,10 @@ namespace kmbnw.Multitreat
         }
 
         private void ComputeGroupStats<T>(
-                Dictionary<int, T> catGroups,
-                Dictionary<int, float> means,
-                Dictionary<int, float> stdDevs,
-                Dictionary<int, int> counts) where T: IEnumerable<float>
+                Dictionary<K, T> catGroups,
+                Dictionary<K, float> means,
+                Dictionary<K, float> stdDevs,
+                Dictionary<K, int> counts) where T: IEnumerable<float>
         {
             foreach (var item in catGroups)
             {
@@ -102,7 +109,10 @@ namespace kmbnw.Multitreat
                 counts[item.Key] = item.Value.Count();
             }
         }
+    }
 
+    class CategoryTreatmentPlanTest
+    {
         // temporary testbed
         public static int Main(string[] args)
         {
@@ -146,7 +156,7 @@ namespace kmbnw.Multitreat
 
             float titleNA;
             float empNA;
-            var treatPlan = new CategoryTreatmentPlan();
+            var treatPlan = new CategoryTreatmentPlan<int>();
             var titleTreat = treatPlan.BuildTreatments(titleMap, out titleNA);
             var empTreat = treatPlan.BuildTreatments(empMap, out empNA);
 
