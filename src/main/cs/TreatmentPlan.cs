@@ -21,54 +21,42 @@ using System.Linq;
 
 namespace kmbnw.Multitreat
 {
-    public sealed class CategoryTreatmentPlan
+    public class CategoryTreatmentPlan
     {
-        private readonly Dictionary<string, List<float>> m_groups = new Dictionary<string, List<float>>();
-        private readonly ReaderWriterLockSlim m_groupLock = new ReaderWriterLockSlim();
-
         public CategoryTreatmentPlan()
         {  }
 
-        public void Add(string category, float target)
+        /// <summary>
+        /// Construct a mapping from integer-valued category to Bayes-adjusted response.
+        ///
+        /// The output value is described in 
+        ///  "A Preprocessing Scheme for High Cardinality Categorical Attributes in 
+        ///  Classification and Prediction Problems", Micci-Barreca, Daniele.
+        /// </summary>
+        /// <param name="catGroups">A dictionary from each distinct integer category
+        /// to all of the response values associated with that category.
+        /// </param>
+        /// <param name="naValue">The value which represents "missing" or "NA".
+        /// Currently the mean of all the response values in <b>catGroups</b>.
+        /// </param>
+        /// <returns>A dictionary from integer category to re-encoded response.</returns>
+        public Dictionary<int, float> BuildTreatments<T>(
+                Dictionary<int, T> catGroups, out float naValue) where T: IEnumerable<float>
         {
-            try
-            {
-                m_groupLock.EnterWriteLock();
-                if (!m_groups.ContainsKey(category))
-                {
-                    m_groups[category] = new List<float>();
-                }
-                m_groups[category].Add(target);
-            }
-            finally
-            {
-                m_groupLock.ExitWriteLock();
-            }
-        }
-
-        public Dictionary<string, float> BuildTreatments() {
             // overall dataframe mean and standard deviation
             float naFill = 1e-6f;
 
-            var means = new Dictionary<string, float>();
-            var stdDevs = new Dictionary<string, float>();
-            var counts = new Dictionary<string, int>();
-            float sampleMean;
-            float sampleSd;
+            var means = new Dictionary<int, float>();
+            var stdDevs = new Dictionary<int, float>();
+            var counts = new Dictionary<int, int>();
 
-            try
-            {
-                m_groupLock.EnterReadLock();
-                sampleMean = m_groups.Values.SelectMany(x => x).Average();
-                sampleSd = SampleStdDev(m_groups.Values.SelectMany(x => x));
-                ComputeGroupStats(means, stdDevs, counts);
-            }
-            finally
-            {
-                m_groupLock.ExitReadLock();
-            }
+            float sampleMean = catGroups.Values.SelectMany(x => x).Average();
+            float sampleSd = SampleStdDev(catGroups.Values.SelectMany(x => x));
+            ComputeGroupStats(catGroups, means, stdDevs, counts);
 
-            var treatment = new Dictionary<string, float>();
+            naValue = sampleMean;
+
+            var treatment = new Dictionary<int, float>();
             foreach (var k in means.Keys)
             {
                 var groupMean = means[k];
@@ -92,7 +80,7 @@ namespace kmbnw.Multitreat
             return treatment;
         }
 
-        private float SampleStdDev(IEnumerable<float> xs) 
+        private float SampleStdDev<T>(T xs) where T: IEnumerable<float>
         {
             var mean = xs.Average();
 
@@ -100,17 +88,18 @@ namespace kmbnw.Multitreat
                         .Sum() / (xs.Count() - 1)));
         }
 
-        private void ComputeGroupStats(
-                Dictionary<string, float> means,
-                Dictionary<string, float> stdDevs,
-                Dictionary<string, int> counts)
+        private void ComputeGroupStats<T>(
+                Dictionary<int, T> catGroups,
+                Dictionary<int, float> means,
+                Dictionary<int, float> stdDevs,
+                Dictionary<int, int> counts) where T: IEnumerable<float>
         {
-            foreach (var item in m_groups)
+            foreach (var item in catGroups)
             {
                 means[item.Key] = item.Value.Average();
                 // TODO be more efficient
                 stdDevs[item.Key] = SampleStdDev(item.Value.ToArray());
-                counts[item.Key] = item.Value.Count;
+                counts[item.Key] = item.Value.Count();
             }
         }
 
@@ -118,26 +107,56 @@ namespace kmbnw.Multitreat
         public static int Main(string[] args)
         {
             var target = new[] { 25, 50, 75, 100, 100, 300 }.Select(x => (float)x).ToArray();
-            var titles = new[] { "A", "A", "A", "A", "B", "B" };
-            var emps = new[] { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
 
-            var titlePlan = new CategoryTreatmentPlan();
-            var empPlan = new CategoryTreatmentPlan();
-
-            Parallel.For(0, target.Length, idx =>
+            var titleEncoding = new Dictionary<string, int>
             {
-                titlePlan.Add(titles[idx], target[idx]);    
-                empPlan.Add(emps[idx], target[idx]);
-            });
+                { "A", 11 },
+                { "B", 20 }
+            };
+            var empEncoding = new Dictionary<string, int>
+            {
+                { "Fake Inc.", 303 },
+                { "Evil Inc.", 201 }
+            };
 
-            var titleTreat = titlePlan.BuildTreatments();
-            var empTreat = empPlan.BuildTreatments();
+            var titles = new[] { "A", "A", "A", "A", "B", "B" }
+                         .Select(x => titleEncoding[x]).ToArray();
+            var emps = new[] { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." }
+                       .Select(x => empEncoding[x]).ToArray();
+
+            var titleMap = new Dictionary<int, List<float>>();
+            var empMap = new Dictionary<int, List<float>>();
+
+            for (int idx = 0; idx < target.Length; idx++)
+            {
+                List<float> titleTargets;
+                if (!titleMap.TryGetValue(titles[idx], out titleTargets))
+                {
+                    titleMap[titles[idx]] = new List<float>();
+                }
+                titleMap[titles[idx]].Add(target[idx]);
+
+                List<float> empTargets;
+                if (!empMap.TryGetValue(emps[idx], out empTargets))
+                {
+                    empMap[emps[idx]] = new List<float>();
+                }
+                empMap[emps[idx]].Add(target[idx]);
+            }
+
+            float titleNA;
+            float empNA;
+            var treatPlan = new CategoryTreatmentPlan();
+            var titleTreat = treatPlan.BuildTreatments(titleMap, out titleNA);
+            var empTreat = treatPlan.BuildTreatments(empMap, out empNA);
 
             var titleTreated = titles.Select(x => titleTreat[x]);
             var empTreated = emps.Select(x => empTreat[x]);
 
             Console.WriteLine("Titles: " + string.Join(", ", titleTreated));
             Console.WriteLine("Employers: " + string.Join(", ", empTreated));
+            Console.WriteLine("Titles NA: " + titleNA);
+            Console.WriteLine("Employers NA: " + empNA);
 
             // TODO proper unit test
             /*
