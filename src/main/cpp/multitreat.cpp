@@ -98,14 +98,15 @@ namespace multitreat {
     void CategoryTreatmentPlan<K>::build_treatment(
             const std::map<K, std::vector<float>> &cat_groups,
             std::map<K, float> &treatment,
-            float &na_value) {
+            const K &na_value) {
         float na_fill = 1e-6f;
         float sample_mean = 0.0f;
         float sample_sd = 0.0f;
 
         sample_mean = mean(cat_groups);
         sample_sd = stddev(cat_groups, sample_mean);
-        na_value = sample_mean;
+
+        treatment[na_value] = sample_mean;
 
         std::map<K, float> means;
         std::map<K, float> std_devs;
@@ -115,6 +116,9 @@ namespace multitreat {
 
         for (const auto& kv : means) {
             K key = kv.first;
+            if (key == na_value) {
+                continue;
+            }
             float group_mean = kv.second;
             // using the simple version of lambda from the paper:
             // lambda = n / (m + n)
@@ -156,11 +160,9 @@ int main() {
 
     std::map<std::string, float> title_treated;
     std::map<std::string, float> emp_treated;
-    float title_na;
-    float emp_na;
 
-    plan.build_treatment(title_groups, title_treated, title_na);
-    plan.build_treatment(emp_groups, emp_treated, emp_na);
+    plan.build_treatment(title_groups, title_treated, "NA");
+    plan.build_treatment(emp_groups, emp_treated, "NA");
 
     std::cout << "Titles: " << std::endl;
 
@@ -168,29 +170,24 @@ int main() {
         std::cout << kv.first << ": " << kv.second << std::endl;
     }
 
-    std::cout << "Title NA Value: " << title_na << std::endl;
-
     std::cout << std::endl << "Employers: " << std::endl;
 
     for (auto& kv : emp_treated) {
         std::cout << kv.first << ": " << kv.second << std::endl;
     }
 
-    std::cout << "Employer NA Value: " << emp_na << std::endl;
-
     /*
         Expecting this output:
 
         Titles:
+        NA: 108.333
         Title A: 65.9761
         Title B: 161.653
-        Title NA Value: 108.333
 
         Employers:
         Employer A: 43.3426
         Employer B: 136.296
-        Employer NA Value: 108.333
-
+        NA: 108.333
 
        From this original input:
 {"title": "A", "amount": 25, "employer": "A", "title_catN": 65.97610994, "employer_catN": 43.34262378}

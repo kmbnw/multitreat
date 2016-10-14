@@ -26,12 +26,13 @@ namespace multitreat {
 
             // category_groups: responses for each category
             // treatment: output of category to Bayes-adjusted encoded response
-            // na_value: value to use for unknown categories (currently is
-            // overall mean)
+            // na_value: key that represents missing/NA values.  Used for overall
+            // mean calculation and will exist as an output key in the returned
+            // treatment map.
             void build_treatment(
                 const std::map<K, std::vector<float>> &category_groups,
                 std::map<K, float> &treatment,
-                float &na_value);
+                const K &na_value);
 
         private:
             void fill_group_stats(
