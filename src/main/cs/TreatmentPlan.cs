@@ -118,24 +118,11 @@ namespace kmbnw.Multitreat
         {
             var target = new[] { 25, 50, 75, 100, 100, 300 }.Select(x => (float)x).ToArray();
 
-            var titleEncoding = new Dictionary<string, int>
-            {
-                { "A", 11 },
-                { "B", 20 }
-            };
-            var empEncoding = new Dictionary<string, int>
-            {
-                { "Fake Inc.", 303 },
-                { "Evil Inc.", 201 }
-            };
+            var titles = new[] { "A", "A", "A", "A", "B", "B" };
+            var emps = new[] { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
 
-            var titles = new[] { "A", "A", "A", "A", "B", "B" }
-                         .Select(x => titleEncoding[x]).ToArray();
-            var emps = new[] { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." }
-                       .Select(x => empEncoding[x]).ToArray();
-
-            var titleMap = new Dictionary<int, List<float>>();
-            var empMap = new Dictionary<int, List<float>>();
+            var titleMap = new Dictionary<string, List<float>>();
+            var empMap = new Dictionary<string, List<float>>();
 
             for (int idx = 0; idx < target.Length; idx++)
             {
@@ -156,7 +143,7 @@ namespace kmbnw.Multitreat
 
             float titleNA;
             float empNA;
-            var treatPlan = new CategoryTreatmentPlan<int>();
+            var treatPlan = new CategoryTreatmentPlan<string>();
             var titleTreat = treatPlan.BuildTreatments(titleMap, out titleNA);
             var empTreat = treatPlan.BuildTreatments(empMap, out empNA);
 
