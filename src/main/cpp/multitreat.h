@@ -18,10 +18,8 @@
 #ifndef KMBNW_MULTITREAT_H
 #define KMBNW_MULTITREAT_H
 
-typedef unsigned int uint;
-typedef unsigned long ulong;
-
 namespace multitreat {
+    template <class K>
     class CategoryTreatmentPlan {
         public:
             CategoryTreatmentPlan();
@@ -31,16 +29,16 @@ namespace multitreat {
             // na_value: value to use for unknown categories (currently is
             // overall mean)
             void build_treatment(
-                const std::map<uint, std::vector<float>> &category_groups,
-                std::map<uint, float> &treatment,
+                const std::map<K, std::vector<float>> &category_groups,
+                std::map<K, float> &treatment,
                 float &na_value);
 
         private:
             void fill_group_stats(
-                const std::map<uint, std::vector<float>> &category_groups,
-                std::map<uint, float> &means,
-                std::map<uint, float> &std_devs,
-                std::map<uint, uint>  &counts);
+                const std::map<K, std::vector<float>> &category_groups,
+                std::map<K, float> &means,
+                std::map<K, float> &std_devs,
+                std::map<K, unsigned int>  &counts);
     };
 }
 #endif //KMBNW_MULTITREAT_H

@@ -37,7 +37,8 @@ namespace multitreat {
     // arithmetic mean of all vectors in the map
     // TODO I should be able to do this with weighted averages
     // which would avoid iterating over all the values again
-    float mean(const std::map<uint, std::vector<float>> &m) {
+    template <typename K>
+    float mean(const std::map<K, std::vector<float>> &m) {
         double total = 0.0;
         ulong count = 0;
         for (const auto& kv: m) {
@@ -59,7 +60,8 @@ namespace multitreat {
     }
 
     // sample standard deviation of map
-    float stddev(const std::map<uint, std::vector<float>> &m, float v_mean) {
+    template <typename K>
+    float stddev(const std::map<K, std::vector<float>> &m, float v_mean) {
         double sd = 0.0;
         ulong count = 0;
         for (const auto& kv: m) {
@@ -71,17 +73,19 @@ namespace multitreat {
         return sqrt(sd / (count - 1));
     }
 
-    CategoryTreatmentPlan::CategoryTreatmentPlan() {
+    template <class K>
+    CategoryTreatmentPlan<K>::CategoryTreatmentPlan() {
     }
 
-    void CategoryTreatmentPlan::fill_group_stats(
-        const std::map<uint, std::vector<float>> &cat_groups,
-        std::map<uint, float> &means,
-        std::map<uint, float> &std_devs,
-        std::map<uint, uint>  &counts) {
+    template <class K>
+    void CategoryTreatmentPlan<K>::fill_group_stats(
+        const std::map<K, std::vector<float>> &cat_groups,
+        std::map<K, float> &means,
+        std::map<K, float> &std_devs,
+        std::map<K, unsigned int>  &counts) {
 
         for (const auto& kv : cat_groups) {
-            uint key = kv.first;
+            K key = kv.first;
             float group_mean = mean(kv.second);
 
             means[key] = group_mean;
@@ -90,9 +94,10 @@ namespace multitreat {
         }
     }
 
-    void CategoryTreatmentPlan::build_treatment(
-            const std::map<uint, std::vector<float>> &cat_groups,
-            std::map<uint, float> &treatment,
+    template <class K>
+    void CategoryTreatmentPlan<K>::build_treatment(
+            const std::map<K, std::vector<float>> &cat_groups,
+            std::map<K, float> &treatment,
             float &na_value) {
         float na_fill = 1e-6f;
         float sample_mean = 0.0f;
@@ -102,20 +107,20 @@ namespace multitreat {
         sample_sd = stddev(cat_groups, sample_mean);
         na_value = sample_mean;
 
-        std::map<uint, float> means;
-        std::map<uint, float> std_devs;
-        std::map<uint, uint> counts;
+        std::map<K, float> means;
+        std::map<K, float> std_devs;
+        std::map<K, unsigned int> counts;
 
         fill_group_stats(cat_groups, means, std_devs, counts);
 
         for (const auto& kv : means) {
-            uint key = kv.first;
+            K key = kv.first;
             float group_mean = kv.second;
             // using the simple version of lambda from the paper:
             // lambda = n / (m + n)
             // where m = group_sd / sample_sd
             // there is a fill-in for when only one sample exists of 1e-6
-            uint n = counts[key];
+            unsigned int n = counts[key];
 
             // TODO make lambda user-settable
             float lambda = na_fill;
@@ -132,8 +137,6 @@ namespace multitreat {
 
 int main() {
     std::vector<float> target = { 25.0, 50.0, 75.0, 100.0, 100.0, 300.0 };
-    std::vector<std::string> titles = { "A", "A", "A", "A", "B", "B" };
-    std::vector<std::string> emps = { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
 
     std::vector<float> title_a(target.begin(), target.begin() + 4);
     std::vector<float> title_b(target.begin() + 4, target.end());
@@ -141,18 +144,18 @@ int main() {
     std::vector<float> emp_a(target.begin(), target.begin() + 2);
     std::vector<float> emp_b(target.begin() + 2, target.end());
 
-    std::map<uint, std::vector<float>> title_groups;
-    std::map<uint, std::vector<float>> emp_groups;
+    std::map<std::string, std::vector<float>> title_groups;
+    std::map<std::string, std::vector<float>> emp_groups;
 
-    title_groups[11] = title_a;
-    title_groups[20] = title_b;
-    emp_groups[303] = emp_a;
-    emp_groups[201] = emp_b;
+    title_groups["Title A"] = title_a;
+    title_groups["Title B"] = title_b;
+    emp_groups["Employer A"] = emp_a;
+    emp_groups["Employer B"] = emp_b;
 
-    multitreat::CategoryTreatmentPlan plan;
+    multitreat::CategoryTreatmentPlan<std::string> plan;
 
-    std::map<uint, float> title_treated;
-    std::map<uint, float> emp_treated;
+    std::map<std::string, float> title_treated;
+    std::map<std::string, float> emp_treated;
     float title_na;
     float emp_na;
 
@@ -176,24 +179,26 @@ int main() {
     std::cout << "Employer NA Value: " << emp_na << std::endl;
 
     /*
-       Expecting this output:
-       Titles:
-       11: 65.9761
-       20: 161.653
-       Title NA Value: 108.333
+        Expecting this output:
 
-       Employers:
-       201: 136.296
-       303: 43.3426
-       Employer NA Value: 108.333
+        Titles:
+        Title A: 65.9761
+        Title B: 161.653
+        Title NA Value: 108.333
+
+        Employers:
+        Employer A: 43.3426
+        Employer B: 136.296
+        Employer NA Value: 108.333
+
 
        From this original input:
-{"title": "A", "amount": 25, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
-{"title": "A", "amount": 50, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
-{"title": "A", "amount": 75, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
-{"title": "A", "amount": 100, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
-{"title": "B", "amount": 100, "employer": "Evil Inc.", "title_catN": 161.6528632, "employer_catN": 136.2962514}
-{"title": "B", "amount": 300, "employer": "Evil Inc.", "title_catN": 161.6528632, "employer_catN": 136.2962514}
+{"title": "A", "amount": 25, "employer": "A", "title_catN": 65.97610994, "employer_catN": 43.34262378}
+{"title": "A", "amount": 50, "employer": "A", "title_catN": 65.97610994, "employer_catN": 43.34262378}
+{"title": "A", "amount": 75, "employer": "B", "title_catN": 65.97610994, "employer_catN": 136.2962514}
+{"title": "A", "amount": 100, "employer": "B", "title_catN": 65.97610994, "employer_catN": 136.2962514}
+{"title": "B", "amount": 100, "employer": "B", "title_catN": 161.6528632, "employer_catN": 136.2962514}
+{"title": "B", "amount": 300, "employer": "B", "title_catN": 161.6528632, "employer_catN": 136.2962514}
  * */
 
     return 0;
