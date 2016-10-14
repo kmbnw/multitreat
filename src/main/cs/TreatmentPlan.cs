@@ -43,12 +43,13 @@ namespace kmbnw.Multitreat
         /// <param name="catGroups">A dictionary from each distinct category
         /// to all of the response values associated with that category.
         /// </param>
-        /// <param name="naValue">The value which represents "missing" or "NA".
-        /// Currently the mean of all the response values in <b>catGroups</b>.
+        /// <param name="naValue">The key which represents "missing" or "NA".
+        /// Will be used for the overall mean and used as a key in the return
+        /// value to represent the encoding for missing values.
         /// </param>
         /// <returns>A dictionary from category to re-encoded response.</returns>
         public Dictionary<K, float> BuildTreatments<T>(
-                Dictionary<K, T> catGroups, out float naValue) where T: IEnumerable<float>
+                Dictionary<K, T> catGroups, K naValue) where T: IEnumerable<float>
         {
             // overall dataframe mean and standard deviation
             float naFill = 1e-6f;
@@ -61,10 +62,10 @@ namespace kmbnw.Multitreat
             float sampleSd = SampleStdDev(catGroups.Values.SelectMany(x => x));
             ComputeGroupStats(catGroups, means, stdDevs, counts);
 
-            naValue = sampleMean;
-
             var treatment = new Dictionary<K, float>();
-            foreach (var k in means.Keys)
+            treatment[naValue] = sampleMean;
+
+            foreach (var k in means.Keys.Where(k => !k.Equals(naValue)))
             {
                 var groupMean = means[k];
                 // using the simple version of lambda from the paper:
@@ -141,22 +142,42 @@ namespace kmbnw.Multitreat
                 empMap[emps[idx]].Add(target[idx]);
             }
 
-            float titleNA;
-            float empNA;
             var treatPlan = new CategoryTreatmentPlan<string>();
-            var titleTreat = treatPlan.BuildTreatments(titleMap, out titleNA);
-            var empTreat = treatPlan.BuildTreatments(empMap, out empNA);
+            var titleTreat = treatPlan.BuildTreatments(titleMap, "NA");
+            var empTreat = treatPlan.BuildTreatments(empMap, "NA");
+
+            Console.WriteLine("Titles:");
+            foreach (var kv in titleTreat) 
+            {
+                Console.WriteLine("{0}: {1}", kv.Key, kv.Value);
+            }
+            Console.WriteLine("Employers:");
+            foreach (var kv in empTreat) 
+            {
+                Console.WriteLine("{0}: {1}", kv.Key, kv.Value);
+            }
 
             var titleTreated = titles.Select(x => titleTreat[x]);
             var empTreated = emps.Select(x => empTreat[x]);
 
             Console.WriteLine("Titles: " + string.Join(", ", titleTreated));
             Console.WriteLine("Employers: " + string.Join(", ", empTreated));
-            Console.WriteLine("Titles NA: " + titleNA);
-            Console.WriteLine("Employers NA: " + empNA);
 
             // TODO proper unit test
-            /*
+            /* Expected output:
+             
+            Titles:
+            NA: 108.3333
+            A: 65.97611
+            B: 161.6529
+            Employers:
+            NA: 108.3333
+            Fake Inc.: 43.34262
+            Evil Inc.: 136.2962
+            Titles: 65.97611, 65.97611, 65.97611, 65.97611, 161.6529, 161.6529
+            Employers: 43.34262, 43.34262, 136.2962, 136.2962, 136.2962, 136.2962
+
+            Based on input of
 {"title": "A", "amount": 25, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
 {"title": "A", "amount": 50, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
 {"title": "A", "amount": 75, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
