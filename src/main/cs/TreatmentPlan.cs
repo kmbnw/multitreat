@@ -76,7 +76,7 @@ namespace kmbnw.Multitreat
 
                 // TODO I would like to make lambda user-settable
                 float lambda = naFill;
-                if (n > 1) {
+                if (n > 1 && sampleSd > 0) {
                     float m = stdDevs[k] / sampleSd;
                     lambda = n / (m + n);
                 }

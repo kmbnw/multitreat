@@ -128,7 +128,7 @@ namespace multitreat {
 
             // TODO make lambda user-settable
             float lambda = na_fill;
-            if (n > 1) {
+            if (n > 1 && sample_sd > 0) {
                 float m = std_devs[key] / sample_sd;
                 lambda = n / (m + n);
             }
