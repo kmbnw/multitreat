@@ -34,8 +34,23 @@ namespace multitreat {
     void CategoryTreatmentPlanTest::tearDown() {
     }
 
-    void CategoryTreatmentPlanTest::test_build_treatment() {
+    void CategoryTreatmentPlanTest::test_build_treatment_stdev_zero() {
+        std::vector<float> all_same(20, 25.0);
+        std::map<std::string, std::vector<float>> groups;
+        groups["X1"] = all_same;
+        groups["X2"] = all_same;
 
+        std::map<std::string, float> treated;
+        _plan.build_treatment(groups, treated, "NA");
+
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["X1"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["X2"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["NA"], _tolerance);
+    }
+
+
+    // happy path testing
+    void CategoryTreatmentPlanTest::test_build_treatment() {
         std::vector<float> title_a(_target.begin(), _target.begin() + 4);
         std::vector<float> title_b(_target.begin() + 4, _target.end());
 
@@ -56,7 +71,8 @@ namespace multitreat {
         _plan.build_treatment(title_groups, title_treated, "NA");
         _plan.build_treatment(emp_groups, emp_treated, "NA");
 
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(108.333335f, title_treated["NA"], _tolerance);
+        float na_val = 108.333335f;
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(na_val, title_treated["NA"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(65.9761123f, title_treated["Title A"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(161.652862f, title_treated["Title B"], _tolerance);
     }
