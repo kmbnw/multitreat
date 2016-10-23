@@ -1,18 +1,24 @@
-CC=g++
-CFLAGS=-Wall -std=c++11
-SHAREDCFLAGS=-shared -fPIC
+CC := g++
+CFLAGS := -Wall -std=c++11
+SHAREDCFLAGS := -shared -fPIC
 
-SRC=multitreat
-EXE=multitreat.a
-TARGET=libmultitreat
+LIBDIR := lib
+BINDIR := bin
+SRC := multitreat
+EXE := $(BINDIR)/multitreat_testbed
+SHARED_OBJ := $(LIBDIR)/libmultitreat.so
+LIBS := -lmultitreat
 
-all: $(TARGET).so $(EXE)
+all: $(SHARED_OBJ) $(EXE)
 
-$(TARGET).so: $(SRC).cpp
-	$(CC) $(CFLAGS) $(SHAREDCFLAGS) -o $(TARGET).so $(SRC).cpp $(LIBS)
+$(SHARED_OBJ): $(SRC).cpp
+	mkdir -p $(LIBDIR)
+	$(CC) $(CFLAGS) $(SHAREDCFLAGS) -o $(SHARED_OBJ) $(SRC).cpp
 
-$(EXE): $(SRC).cpp
-	$(CC) $(CFLAGS) -o $(EXE) $(SRC).cpp $(LIBS)
+$(EXE): multitreat_testbed.cpp
+	mkdir -p $(BINDIR)
+	$(CC) $(CFLAGS) -L $(LIBDIR) -o $(EXE) multitreat_testbed.cpp $(LIBS)
 
 clean:
-	$(RM) $(TARGET).so $(EXE)
+	$(RM) $(LIBDIR)/*
+	$(RM) $(BINDIR)/*
