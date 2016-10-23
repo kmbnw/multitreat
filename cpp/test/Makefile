@@ -4,7 +4,7 @@ TARGET := $(BINDIR)/multitreat_test
 
 all: $(TARGET)
 
-$(TARGET):
+$(TARGET): *.cpp *.h
 	mkdir -p $(BINDIR)
 	$(cc-command) -I ../src -L ../$(LIBDIR) -o $(TARGET) *.cpp $(LIBS) -lcppunit
 
