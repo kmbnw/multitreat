@@ -1,7 +1,7 @@
 all:
-	cd src/main/cpp; make all
-	cd src/main/cs; make all
+	cd cpp/src; make all
+	cd cs/src; make all
 
 clean:
-	cd src/main/cpp; make clean
-	cd src/main/cs; make clean
+	cd cpp/src; make clean
+	cd cs/src; make clean
