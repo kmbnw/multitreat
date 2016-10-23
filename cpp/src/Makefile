@@ -1,24 +1,12 @@
-CC := g++
-CFLAGS := -Wall -std=c++11
-SHAREDCFLAGS := -shared -fPIC
+include ../Makefile.inc
 
-LIBDIR := lib
-BINDIR := bin
-SRC := multitreat
-EXE := $(BINDIR)/multitreat_testbed
-SHARED_OBJ := $(LIBDIR)/libmultitreat.so
-LIBS := -lmultitreat
+TARGET := ../$(LIBDIR)/$(SHARED_OBJ)
 
-all: $(SHARED_OBJ) $(EXE)
+all: $(TARGET)
 
-$(SHARED_OBJ): $(SRC).cpp
-	mkdir -p $(LIBDIR)
-	$(CC) $(CFLAGS) $(SHAREDCFLAGS) -o $(SHARED_OBJ) $(SRC).cpp
-
-$(EXE): multitreat_testbed.cpp
-	mkdir -p $(BINDIR)
-	$(CC) $(CFLAGS) -L $(LIBDIR) -o $(EXE) multitreat_testbed.cpp $(LIBS)
+$(TARGET):
+	mkdir -p ../$(LIBDIR)
+	$(cc-command) $(SHAREDCFLAGS) -o $(TARGET) *.cpp
 
 clean:
-	$(RM) $(LIBDIR)/*
-	$(RM) $(BINDIR)/*
+	$(RM) $(TARGET)
