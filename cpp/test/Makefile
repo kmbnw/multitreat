@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-TARGET := $(BINDIR)/multitreat_test
+TARGET := $(BINDIR)multitreat_test
 
 all: $(TARGET)
 

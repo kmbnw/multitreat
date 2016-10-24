@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-TARGET := ../$(LIBDIR)/$(SHARED_OBJ)
+TARGET := ../$(LIBDIR)$(SHARED_OBJ)
 
 all: $(TARGET)
 
