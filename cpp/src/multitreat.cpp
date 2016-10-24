@@ -82,7 +82,7 @@ namespace multitreat {
         const std::map<K, std::vector<float>> &cat_groups,
         std::map<K, float> &means,
         std::map<K, float> &std_devs,
-        std::map<K, unsigned int>  &counts) {
+        std::map<K, unsigned int>  &counts) const {
 
         for (const auto& kv : cat_groups) {
             K key = kv.first;
@@ -98,7 +98,7 @@ namespace multitreat {
     void CategoryTreatmentPlan<K>::build_treatment(
             const std::map<K, std::vector<float>> &cat_groups,
             std::map<K, float> &treatment,
-            const K &na_value) {
+            const K &na_value) const {
         float na_fill = 1e-6f;
         float sample_mean = 0.0f;
         float sample_sd = 0.0f;

@@ -32,14 +32,14 @@ namespace multitreat {
             void build_treatment(
                 const std::map<K, std::vector<float>> &category_groups,
                 std::map<K, float> &treatment,
-                const K &na_value);
+                const K &na_value) const;
 
         private:
             void fill_group_stats(
                 const std::map<K, std::vector<float>> &category_groups,
                 std::map<K, float> &means,
                 std::map<K, float> &std_devs,
-                std::map<K, unsigned int>  &counts);
+                std::map<K, unsigned int>  &counts) const;
     };
 }
 #endif //KMBNW_MULTITREAT_H
