@@ -36,9 +36,9 @@ namespace multitreat {
             void add(K category, float new_value);
 
         private:
-            double _mean;
-            double _m2_stdev;
-            unsigned long _count;
+            double _mean = 0;
+            double _m2_stdev = 0;
+            unsigned long _count = 0;
             std::unordered_map<K, double> _group_means;
             std::unordered_map<K, unsigned long> _group_counts;
             std::unordered_map<K, double> _group_m2_stdev;

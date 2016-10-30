@@ -29,7 +29,7 @@ namespace multitreat {
 
         private:
             std::vector<float> _target = { 25.0, 50.0, 75.0, 100.0, 100.0, 300.0 };
-            multitreat::CategoryTreatmentPlan<std::string> _plan;
+
             // for most of this kind of work we don't need super tight tolerance
             // so use the NA fill value
             float const _tolerance = 1e-6;

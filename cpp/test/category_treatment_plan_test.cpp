@@ -35,10 +35,10 @@ namespace multitreat {
     }
 
     void CategoryTreatmentPlanTest::test_build_treatment_stdev_zero() {
-        std::vector<float> all_same(20, 25.0);
+        float response = 25.0f;
         CategoryTreatmentPlan<std::string> plan;
 
-        for (const auto& response: all_same) {
+        for (size_t i = 0; i < 20; ++i) {
             plan.add("X1", response);
             plan.add("X2", response);
         }
@@ -62,31 +62,34 @@ namespace multitreat {
 
         CategoryTreatmentPlan<std::string> plan;
         for (const auto& response: title_a) {
-            _plan.add("Title A", response);
+            plan.add("Title A", response);
         }
 
         for (const auto& response: title_b) {
-            _plan.add("Title B", response);
+            plan.add("Title B", response);
         }
 
         for (const auto& response: emp_a) {
-            _plan.add("Employer A", response);
+            plan.add("Employer A", response);
         }
 
         for (const auto& response: emp_b) {
-            _plan.add("Employer B", response);
+            plan.add("Employer B", response);
         }
 
         std::unordered_map<std::string, float> title_treated;
         std::unordered_map<std::string, float> emp_treated;
 
-        _plan.build(title_treated, "NA");
-        _plan.build(emp_treated, "NA");
+        plan.build(title_treated, "NA");
+        plan.build(emp_treated, "NA");
 
         float na_val = 108.333335f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(na_val, title_treated["NA"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(65.9761123f, title_treated["Title A"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(161.652862f, title_treated["Title B"], _tolerance);
+
+        float title_a_expected = 65.9761123f;
+        float title_b_expected = 161.652862f;
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(title_a_expected, title_treated["Title A"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(title_b_expected, title_treated["Title B"], _tolerance);
     }
 }
 

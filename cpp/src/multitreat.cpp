@@ -42,6 +42,9 @@ namespace multitreat {
 
     template <class K>
     CategoryTreatmentPlan<K>::CategoryTreatmentPlan() {
+        _group_means.clear();
+        _group_counts.clear();
+        _group_m2_stdev.clear();
     }
 
     // online calculation of mean and variance
