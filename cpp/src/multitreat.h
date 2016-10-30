@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include <vector>
+#include <unordered_map>
 
 #ifndef KMBNW_MULTITREAT_H
 #define KMBNW_MULTITREAT_H
@@ -24,22 +25,23 @@ namespace multitreat {
         public:
             CategoryTreatmentPlan();
 
-            // category_groups: responses for each category
             // treatment: output of category to Bayes-adjusted encoded response
             // na_value: key that represents missing/NA values.  Used for overall
             // mean calculation and will exist as an output key in the returned
             // treatment map.
-            void build_treatment(
-                const std::map<K, std::vector<float>> &category_groups,
-                std::map<K, float> &treatment,
+            void build(
+                std::unordered_map<K, float> &treatment,
                 const K &na_value) const;
 
+            void add(K category, float new_value);
+
         private:
-            void fill_group_stats(
-                const std::map<K, std::vector<float>> &category_groups,
-                std::map<K, float> &means,
-                std::map<K, float> &std_devs,
-                std::map<K, unsigned int>  &counts) const;
+            double _mean;
+            double _m2_stdev;
+            unsigned long _count;
+            std::unordered_map<K, double> _group_means;
+            std::unordered_map<K, unsigned long> _group_counts;
+            std::unordered_map<K, double> _group_m2_stdev;
     };
 }
 #endif //KMBNW_MULTITREAT_H

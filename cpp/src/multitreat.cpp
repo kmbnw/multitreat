@@ -17,7 +17,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
-#include <map>
+#include <unordered_map>
 #include <numeric>
 #include <vector>
 #include <algorithm>
@@ -25,120 +25,97 @@
 #include "multitreat.h"
 
 namespace multitreat {
-    double sum(const std::vector<float> &v) {
-        return std::accumulate(v.begin(), v.end(), 0.0l);
+    void online_update(
+            const float& new_value,
+            unsigned long& x_count,
+            double& x_mean,
+            double& x_m2_stdev) {
+        x_count += 1;
+        double delta = new_value - x_mean;
+        x_mean += delta / x_count;
+        x_m2_stdev += delta * (new_value - x_mean);
     }
 
-    // arithmetic mean of a vector
-    float mean(const std::vector<float> &v) {
-        return (float) sum(v) / v.size();
-    }
-
-    // arithmetic mean of all vectors in the map
-    // TODO I should be able to do this with weighted averages
-    // which would avoid iterating over all the values again
-    template <typename K>
-    float mean(const std::map<K, std::vector<float>> &m) {
-        double total = 0.0;
-        ulong count = 0;
-        for (const auto& kv: m) {
-            total += sum(kv.second);
-            count += kv.second.size();
-        }
-        return total / count;
-    }
-
-    // sample standard deviation of vector
-    float stddev(const std::vector<float> &v, float v_mean) {
-        // the combo of std::for_each, std::accumulate, and a lambda function
-        // is just a little too opaque for my taste
-        double sd = 0.0;
-        for (const auto& x: v) {
-            sd += pow(x - v_mean, 2.0);
-        }
-        return (float) sqrt(sd / (v.size() - 1));
-    }
-
-    // sample standard deviation of map
-    template <typename K>
-    float stddev(const std::map<K, std::vector<float>> &m, float v_mean) {
-        double sd = 0.0;
-        ulong count = 0;
-        for (const auto& kv: m) {
-            for (const auto& x: kv.second) {
-                sd += pow(x - v_mean, 2.0);
-            }
-            count += kv.second.size();
-        }
-        return sqrt(sd / (count - 1));
+    double std_dev_from_m2(const unsigned long& count, const double& m2_stdev) {
+        return count < 2 ? nan("") : m2_stdev / (count - 1);
     }
 
     template <class K>
     CategoryTreatmentPlan<K>::CategoryTreatmentPlan() {
     }
 
+    // online calculation of mean and variance
+    // see https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
     template <class K>
-    void CategoryTreatmentPlan<K>::fill_group_stats(
-        const std::map<K, std::vector<float>> &cat_groups,
-        std::map<K, float> &means,
-        std::map<K, float> &std_devs,
-        std::map<K, unsigned int>  &counts) const {
+    void CategoryTreatmentPlan<K>::add(K category, float new_value) {
+        // update mean and std dev for overall sample
+        online_update(new_value, _count, _mean, _m2_stdev);
 
-        for (const auto& kv : cat_groups) {
-            K key = kv.first;
-            float group_mean = mean(kv.second);
+        // and for the group
+        double cat_mean = 0;
+        unsigned long cat_count = 0;
+        double cat_m2_stdev = 0;
 
-            means[key] = group_mean;
-            std_devs[key] = stddev(kv.second, group_mean);
-            counts[key] = kv.second.size();
+        // have we seen this category before?
+        auto cat_mean_iter = _group_means.find(category);
+        if (cat_mean_iter != _group_means.end()) {
+            cat_mean = cat_mean_iter->second;
+            cat_count = _group_counts.find(category)->second;
+            cat_m2_stdev = _group_m2_stdev.find(category)->second;
         }
+
+        online_update(new_value, cat_count, cat_mean, cat_m2_stdev);
+
+        // update internal structures
+        _group_means[category] = cat_mean;
+        _group_counts[category] = cat_count;
+        _group_m2_stdev[category] = cat_m2_stdev;
     }
 
     template <class K>
-    void CategoryTreatmentPlan<K>::build_treatment(
-            const std::map<K, std::vector<float>> &cat_groups,
-            std::map<K, float> &treatment,
+    void CategoryTreatmentPlan<K>::build(
+            std::unordered_map<K, float> &treatment,
             const K &na_value) const {
         float na_fill = 1e-6f;
-        float sample_mean = 0.0f;
-        float sample_sd = 0.0f;
+        double stdev = std_dev_from_m2(_count, _m2_stdev);
+        treatment[na_value] = (float) _mean;
 
-        sample_mean = mean(cat_groups);
-        sample_sd = stddev(cat_groups, sample_mean);
-
-        treatment[na_value] = sample_mean;
-
-        std::map<K, float> means;
-        std::map<K, float> std_devs;
-        std::map<K, unsigned int> counts;
-
-        fill_group_stats(cat_groups, means, std_devs, counts);
-
-        for (const auto& kv : means) {
-            K key = kv.first;
-            if (key == na_value) {
+        for (const auto& kv : _group_means) {
+            K category = kv.first;
+            if (category == na_value) {
                 continue;
             }
-            float group_mean = kv.second;
+            double cat_mean = kv.second;
+            unsigned long cat_count = _group_counts.find(category)->second;
+            double cat_m2_stdev = _group_m2_stdev.find(category)->second;
+            double cat_stdev = std_dev_from_m2(cat_count, cat_m2_stdev);
+
             // using the simple version of lambda from the paper:
             // lambda = n / (m + n)
             // where m = group_sd / sample_sd
             // there is a fill-in for when only one sample exists of 1e-6
-            unsigned int n = counts[key];
+            unsigned long n = cat_count;
 
             // TODO make lambda user-settable
-            float lambda = na_fill;
-            if (n > 1 && sample_sd > 0) {
-                float m = std_devs[key] / sample_sd;
+            double lambda = na_fill;
+            if (_count > 1 && n > 1 && stdev > 0) {
+                double m = cat_stdev / stdev;
                 lambda = n / (m + n);
             }
 
             // Bayesian formula from the paper
-            treatment[key] = lambda * group_mean + (1 - lambda) * sample_mean;
+            double treated = lambda * cat_mean + (1 - lambda) * _mean;
+            treatment[category] = (float) treated;
         }
     }
 
+    template class CategoryTreatmentPlan<unsigned char>;
+    template class CategoryTreatmentPlan<signed char>;
     template class CategoryTreatmentPlan<unsigned int>;
     template class CategoryTreatmentPlan<int>;
+    template class CategoryTreatmentPlan<unsigned long>;
+    template class CategoryTreatmentPlan<long>;
+    template class CategoryTreatmentPlan<unsigned long long>;
+    template class CategoryTreatmentPlan<long long>;
     template class CategoryTreatmentPlan<std::string>;
 }

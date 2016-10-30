@@ -15,7 +15,7 @@
  */
 
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "multitreat.h"
 #include "category_treatment_plan_test.h"
@@ -36,12 +36,15 @@ namespace multitreat {
 
     void CategoryTreatmentPlanTest::test_build_treatment_stdev_zero() {
         std::vector<float> all_same(20, 25.0);
-        std::map<std::string, std::vector<float>> groups;
-        groups["X1"] = all_same;
-        groups["X2"] = all_same;
+        CategoryTreatmentPlan<std::string> plan;
 
-        std::map<std::string, float> treated;
-        _plan.build_treatment(groups, treated, "NA");
+        for (const auto& response: all_same) {
+            plan.add("X1", response);
+            plan.add("X2", response);
+        }
+
+        std::unordered_map<std::string, float> treated;
+        plan.build(treated, "NA");
 
         CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["X1"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["X2"], _tolerance);
@@ -57,19 +60,28 @@ namespace multitreat {
         std::vector<float> emp_a(_target.begin(), _target.begin() + 2);
         std::vector<float> emp_b(_target.begin() + 2, _target.end());
 
-        std::map<std::string, std::vector<float>> title_groups;
-        std::map<std::string, std::vector<float>> emp_groups;
+        CategoryTreatmentPlan<std::string> plan;
+        for (const auto& response: title_a) {
+            _plan.add("Title A", response);
+        }
 
-        title_groups["Title A"] = title_a;
-        title_groups["Title B"] = title_b;
-        emp_groups["Employer A"] = emp_a;
-        emp_groups["Employer B"] = emp_b;
+        for (const auto& response: title_b) {
+            _plan.add("Title B", response);
+        }
 
-        std::map<std::string, float> title_treated;
-        std::map<std::string, float> emp_treated;
+        for (const auto& response: emp_a) {
+            _plan.add("Employer A", response);
+        }
 
-        _plan.build_treatment(title_groups, title_treated, "NA");
-        _plan.build_treatment(emp_groups, emp_treated, "NA");
+        for (const auto& response: emp_b) {
+            _plan.add("Employer B", response);
+        }
+
+        std::unordered_map<std::string, float> title_treated;
+        std::unordered_map<std::string, float> emp_treated;
+
+        _plan.build(title_treated, "NA");
+        _plan.build(emp_treated, "NA");
 
         float na_val = 108.333335f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(na_val, title_treated["NA"], _tolerance);
