@@ -1,11 +1,12 @@
-CC=mcs
+CC := mcs
 
-TARGET=TreatmentPlan
+TARGET := TreatmentPlan
+NUNIT := /usr/lib/cli/nunit.framework-2.6.3
 
-all: $(TARGET).exe
+all: $(TARGET).dll
 
-$(TARGET).exe: $(TARGET).cs
-	$(CC) $(TARGET).cs -out:$(TARGET).exe
+$(TARGET).dll: $(TARGET).cs
+	$(CC) $(TARGET).cs -pkg:nunit -out:$(TARGET).dll -target:library
 
 clean:
-	$(RM) $(TARGET).exe
+	$(RM) $(TARGET).dll

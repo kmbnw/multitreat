@@ -19,6 +19,8 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 
+using NUnit.Framework;
+
 namespace kmbnw.Multitreat
 {
     /// <summary>
@@ -160,10 +162,11 @@ namespace kmbnw.Multitreat
         }
     }
 
-    class CategoryTreatmentPlanTest
+    [TestFixture]
+    public class CategoryTreatmentPlanTest
     {
-        // temporary testbed
-        public static int Main(string[] args)
+        [Test]
+        public void TestX()
         {
             var target = new[] { 25, 50, 75, 100, 100, 300 }.Select(x => (float)x).ToArray();
 
@@ -212,7 +215,7 @@ namespace kmbnw.Multitreat
             Titles: 63.70234, 63.70234, 63.70234, 63.70234, 153.3898, 153.3898
             Employers: 38.62672, 38.62672, 135.9118, 135.9118, 135.9118, 135.9118
             */
-            return 0;
+            //return 0;
         }
     }
 }
