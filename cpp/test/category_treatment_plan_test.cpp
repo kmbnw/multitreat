@@ -34,7 +34,7 @@ namespace multitreat {
     void CategoryTreatmentPlanTest::tearDown() {
     }
 
-    void CategoryTreatmentPlanTest::test_build_treatment_stdev_zero() {
+    void CategoryTreatmentPlanTest::test_build_stdev_zero() {
         float response = 25.0f;
         CategoryTreatmentPlan<std::string> plan;
 
@@ -46,14 +46,39 @@ namespace multitreat {
         std::unordered_map<std::string, float> treated;
         plan.build(treated, "NA");
 
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["X1"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["X2"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(25.0, treated["NA"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["X1"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["X2"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["NA"], _tolerance);
     }
 
+    void CategoryTreatmentPlanTest::test_build_one_item() {
+        float response = 523.0f;
+        CategoryTreatmentPlan<std::string> plan;
+
+        plan.add("X1", response);
+        plan.add("X2", response);
+
+        std::unordered_map<std::string, float> treated;
+        plan.build(treated, "NA");
+
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["X1"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["X2"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["NA"], _tolerance);
+    }
+
+    void CategoryTreatmentPlanTest::test_build_empty() {
+        CategoryTreatmentPlan<std::string> plan;
+
+        std::unordered_map<std::string, float> treated;
+        plan.build(treated, "NA");
+
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(0, treated["X1"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(0, treated["X2"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(0, treated["NA"], _tolerance);
+    }
 
     // happy path testing
-    void CategoryTreatmentPlanTest::test_build_treatment() {
+    void CategoryTreatmentPlanTest::test_build() {
         std::vector<float> title_a(_target.begin(), _target.begin() + 4);
         std::vector<float> title_b(_target.begin() + 4, _target.end());
 
@@ -86,8 +111,8 @@ namespace multitreat {
         float na_val = 108.333335f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(na_val, title_treated["NA"], _tolerance);
 
-        float title_a_expected = 65.9761123f;
-        float title_b_expected = 161.652862f;
+        float title_a_expected = 63.8191184997559f;
+        float title_b_expected = 151.209671020508f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(title_a_expected, title_treated["Title A"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(title_b_expected, title_treated["Title B"], _tolerance);
     }

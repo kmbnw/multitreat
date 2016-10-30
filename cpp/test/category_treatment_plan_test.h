@@ -23,8 +23,10 @@
 namespace multitreat {
     class CategoryTreatmentPlanTest : public CppUnit::TestFixture {
         CPPUNIT_TEST_SUITE(CategoryTreatmentPlanTest);
-        CPPUNIT_TEST(test_build_treatment);
-        CPPUNIT_TEST(test_build_treatment_stdev_zero);
+        CPPUNIT_TEST(test_build);
+        CPPUNIT_TEST(test_build_empty);
+        CPPUNIT_TEST(test_build_one_item);
+        CPPUNIT_TEST(test_build_stdev_zero);
         CPPUNIT_TEST_SUITE_END();
 
         private:
@@ -37,8 +39,10 @@ namespace multitreat {
         public:
             void setUp();
             void tearDown();
-            void test_build_treatment();
-            void test_build_treatment_stdev_zero();
+            void test_build();
+            void test_build_empty();
+            void test_build_one_item();
+            void test_build_stdev_zero();
     };
 }
 #endif
