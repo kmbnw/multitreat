@@ -21,7 +21,6 @@ using System.Linq;
 
 namespace kmbnw.Multitreat
 {
-
     /// <summary>
     /// Create a new treatment plan whose category type is K.
     ///
@@ -30,85 +29,134 @@ namespace kmbnw.Multitreat
     /// </summary>
     public class CategoryTreatmentPlan<K>
     {
+        private readonly IDictionary<K, double> _groupMeans = new Dictionary<K, double>();
+        private readonly IDictionary<K, ulong> _groupCounts = new Dictionary<K, ulong>();
+        private readonly IDictionary<K, double> _groupM2Stdev = new Dictionary<K, double>();
+        private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+
+        private ulong _count = 0;
+        private double _mean = 0;
+        private double _m2Stdev = 0;
+
         public CategoryTreatmentPlan()
         {  }
 
         /// <summary>
+        /// Add a pair of category to response and update the means and std
+        /// deviations using the online update given at
+        // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        /// </summary>
+        public void Add(K category, float newValue)
+        {
+            _lock.EnterWriteLock();
+
+            try
+            {
+                OnlineUpdate(newValue, ref _count, ref _mean, ref _m2Stdev);
+
+                // and for the group
+                double catMean = 0;
+                ulong catCount = 0;
+                double catM2Stdev = 0;
+
+                // have we seen this category before?
+                if (_groupMeans.TryGetValue(category, out catMean))
+                {
+                    catCount = _groupCounts[category];
+                    catM2Stdev = _groupM2Stdev[category];
+                }
+
+                OnlineUpdate(newValue, ref catCount, ref catMean, ref catM2Stdev);
+
+                // update internal structures
+                _groupMeans[category] = catMean;
+                _groupCounts[category] = catCount;
+                _groupM2Stdev[category] = catM2Stdev;
+            }
+            finally
+            {
+                _lock.ExitWriteLock();
+            }
+        }
+
+        /// <summary>
         /// Construct a mapping from category to Bayes-adjusted response.
         ///
-        /// The output value is described in 
-        ///  "A Preprocessing Scheme for High Cardinality Categorical Attributes in 
+        /// The output value is described in
+        ///  "A Preprocessing Scheme for High Cardinality Categorical Attributes in
         ///  Classification and Prediction Problems", Micci-Barreca, Daniele.
         /// </summary>
-        /// <param name="catGroups">A dictionary from each distinct category
-        /// to all of the response values associated with that category.
-        /// </param>
         /// <param name="naValue">The key which represents "missing" or "NA".
         /// Will be used for the overall mean and used as a key in the return
         /// value to represent the encoding for missing values.
         /// </param>
         /// <returns>A dictionary from category to re-encoded response.</returns>
-        public Dictionary<K, float> BuildTreatments<T>(
-                Dictionary<K, T> catGroups, K naValue) where T: IEnumerable<float>
+        public Dictionary<K, float> Build(K naValue)
         {
-            // overall dataframe mean and standard deviation
-            float naFill = 1e-6f;
-
-            var means = new Dictionary<K, float>();
-            var stdDevs = new Dictionary<K, float>();
-            var counts = new Dictionary<K, int>();
-
-            float sampleMean = catGroups.Values.SelectMany(x => x).Average();
-            float sampleSd = SampleStdDev(catGroups.Values.SelectMany(x => x));
-            ComputeGroupStats(catGroups, means, stdDevs, counts);
-
             var treatment = new Dictionary<K, float>();
-            treatment[naValue] = sampleMean;
-
-            foreach (var k in means.Keys.Where(k => !k.Equals(naValue)))
+            if (_count < 1)
             {
-                var groupMean = means[k];
-                // using the simple version of lambda from the paper:
-                // lambda = n / (m + n)
-                // where m = group_sd / sample_sd
-                // there is a fill-in for when only one sample exists of 1e-6
-                int n = counts[k];
+                // nothing to calculate on
+                return treatment;
+            }
 
-                // TODO I would like to make lambda user-settable
-                float lambda = naFill;
-                if (n > 1 && sampleSd > 0) {
-                    float m = stdDevs[k] / sampleSd;
-                    lambda = n / (m + n);
+            _lock.EnterReadLock();
+
+            try
+            {
+                // sample mean and standard deviation
+                float naFill = 1e-6f;
+                double stdev = StdDevFromM2(_count, _m2Stdev);
+
+                treatment[naValue] = (float) _mean;
+
+                foreach (var kv in _groupMeans.Where(kv => !kv.Key.Equals(naValue)))
+                {
+                    var category = kv.Key;
+                    var catMean = kv.Value;
+                    ulong catCount = _groupCounts[category];
+                    double catM2Stdev = _groupM2Stdev[category];
+                    double catStdev = StdDevFromM2(catCount, catM2Stdev);
+
+                    // using the simple version of lambda from the paper:
+                    // lambda = n / (m + n)
+                    // where m = group_sd / sample_sd
+                    // there is a fill-in for when only one sample exists of 1e-6
+                    ulong n = catCount;
+
+                    // TODO I would like to make lambda user-settable
+                    double lambda = naFill;
+                    if (_count > 1 && n > 1 && stdev > 0) {
+                        double m = catStdev / stdev;
+                        lambda = n / (m + n);
+                    }
+
+                    // Bayesian formula from the paper
+                    double treated = lambda * catMean + (1 - lambda) * _mean;
+                    treatment[category] = (float) treated;
                 }
 
-                // Bayesian formula from the paper
-                treatment[k] = lambda * groupMean + (1 - lambda) * sampleMean;
+                return treatment;
             }
-
-            return treatment;
-        }
-
-        private float SampleStdDev<T>(T xs) where T: IEnumerable<float>
-        {
-            var mean = xs.Average();
-
-            return (float) Math.Sqrt((xs.Select(x => Math.Pow(x - mean, 2))
-                        .Sum() / (xs.Count() - 1)));
-        }
-
-        private void ComputeGroupStats<T>(
-                Dictionary<K, T> catGroups,
-                Dictionary<K, float> means,
-                Dictionary<K, float> stdDevs,
-                Dictionary<K, int> counts) where T: IEnumerable<float>
-        {
-            foreach (var item in catGroups)
+            finally
             {
-                means[item.Key] = item.Value.Average();
-                // TODO be more efficient
-                stdDevs[item.Key] = SampleStdDev(item.Value.ToArray());
-                counts[item.Key] = item.Value.Count();
+                _lock.ExitReadLock();
             }
+        }
+
+        private static void OnlineUpdate(
+                float newValue,
+                ref ulong xCount,
+                ref double xMean,
+                ref double xM2Stdev) {
+            xCount += 1;
+            double delta = newValue - xMean;
+            xMean += delta / xCount;
+            xM2Stdev += delta * (newValue - xMean);
+        }
+
+        private static double StdDevFromM2(ulong count, double m2Stdev) {
+            return count < 2 ? double.NaN : m2Stdev / (count - 1);
         }
     }
 
@@ -122,37 +170,24 @@ namespace kmbnw.Multitreat
             var titles = new[] { "A", "A", "A", "A", "B", "B" };
             var emps = new[] { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
 
-            var titleMap = new Dictionary<string, List<float>>();
-            var empMap = new Dictionary<string, List<float>>();
-
+            var titlePlan = new CategoryTreatmentPlan<string>();
+            var empPlan = new CategoryTreatmentPlan<string>();
             for (int idx = 0; idx < target.Length; idx++)
             {
-                List<float> titleTargets;
-                if (!titleMap.TryGetValue(titles[idx], out titleTargets))
-                {
-                    titleMap[titles[idx]] = new List<float>();
-                }
-                titleMap[titles[idx]].Add(target[idx]);
-
-                List<float> empTargets;
-                if (!empMap.TryGetValue(emps[idx], out empTargets))
-                {
-                    empMap[emps[idx]] = new List<float>();
-                }
-                empMap[emps[idx]].Add(target[idx]);
+                titlePlan.Add(titles[idx], target[idx]);
+                empPlan.Add(emps[idx], target[idx]);
             }
 
-            var treatPlan = new CategoryTreatmentPlan<string>();
-            var titleTreat = treatPlan.BuildTreatments(titleMap, "NA");
-            var empTreat = treatPlan.BuildTreatments(empMap, "NA");
+            var titleTreat = titlePlan.Build("NA");
+            var empTreat = empPlan.Build("NA");
 
             Console.WriteLine("Titles:");
-            foreach (var kv in titleTreat) 
+            foreach (var kv in titleTreat)
             {
                 Console.WriteLine("{0}: {1}", kv.Key, kv.Value);
             }
             Console.WriteLine("Employers:");
-            foreach (var kv in empTreat) 
+            foreach (var kv in empTreat)
             {
                 Console.WriteLine("{0}: {1}", kv.Key, kv.Value);
             }
@@ -165,25 +200,17 @@ namespace kmbnw.Multitreat
 
             // TODO proper unit test
             /* Expected output:
-             
+
             Titles:
             NA: 108.3333
-            A: 65.97611
-            B: 161.6529
+            A: 63.70234
+            B: 153.3898
             Employers:
             NA: 108.3333
-            Fake Inc.: 43.34262
-            Evil Inc.: 136.2962
-            Titles: 65.97611, 65.97611, 65.97611, 65.97611, 161.6529, 161.6529
-            Employers: 43.34262, 43.34262, 136.2962, 136.2962, 136.2962, 136.2962
-
-            Based on input of
-{"title": "A", "amount": 25, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
-{"title": "A", "amount": 50, "employer": "Fake Inc.", "title_catN": 65.97610994, "employer_catN": 43.34262378}
-{"title": "A", "amount": 75, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
-{"title": "A", "amount": 100, "employer": "Evil Inc.", "title_catN": 65.97610994, "employer_catN": 136.2962514}
-{"title": "B", "amount": 100, "employer": "Evil Inc.", "title_catN": 161.6528632, "employer_catN": 136.2962514}
-{"title": "B", "amount": 300, "employer": "Evil Inc.", "title_catN": 161.6528632, "employer_catN": 136.2962514}
+            Fake Inc.: 38.62672
+            Evil Inc.: 135.9118
+            Titles: 63.70234, 63.70234, 63.70234, 63.70234, 153.3898, 153.3898
+            Employers: 38.62672, 38.62672, 135.9118, 135.9118, 135.9118, 135.9118
             */
             return 0;
         }
