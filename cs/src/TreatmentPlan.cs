@@ -146,13 +146,13 @@ namespace kmbnw.Multitreat
 
         private static void OnlineUpdate(
                 float newValue,
-                ref ulong xCount,
-                ref double xMean,
-                ref double xM2Stdev) {
-            xCount += 1;
-            double delta = newValue - xMean;
-            xMean += delta / xCount;
-            xM2Stdev += delta * (newValue - xMean);
+                ref ulong count,
+                ref double mean,
+                ref double m2Stdev) {
+            count += 1;
+            double delta = newValue - mean;
+            mean += delta / count;
+            m2Stdev += delta * (newValue - mean);
         }
 
         private static double StdDevFromM2(ulong count, double m2Stdev) {
