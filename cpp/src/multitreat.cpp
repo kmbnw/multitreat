@@ -79,6 +79,12 @@ namespace multitreat {
     void CategoryTreatmentPlan<K>::build(
             std::unordered_map<K, float> &treatment,
             const K &na_value) const {
+
+        if (_count < 1) {
+            // this is a meaningless operation
+            return;
+        }
+
         float na_fill = 1e-6f;
         double stdev = std_dev_from_m2(_count, _m2_stdev);
         treatment[na_value] = (float) _mean;

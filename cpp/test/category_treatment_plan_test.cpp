@@ -61,9 +61,11 @@ namespace multitreat {
         std::unordered_map<std::string, float> treated;
         plan.build(treated, "NA");
 
+        CPPUNIT_ASSERT(3 == treated.size());
         CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["X1"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["X2"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(response, treated["NA"], _tolerance);
+        CPPUNIT_ASSERT(3 == treated.size());
     }
 
     void CategoryTreatmentPlanTest::test_build_empty() {
@@ -72,49 +74,56 @@ namespace multitreat {
         std::unordered_map<std::string, float> treated;
         plan.build(treated, "NA");
 
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(0, treated["X1"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(0, treated["X2"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(0, treated["NA"], _tolerance);
+        CPPUNIT_ASSERT(0 == treated.size());
     }
 
     // happy path testing
     void CategoryTreatmentPlanTest::test_build() {
-        std::vector<float> title_a(_target.begin(), _target.begin() + 4);
-        std::vector<float> title_b(_target.begin() + 4, _target.end());
+        std::vector<float> title_a { 25, 50, 75, 100 };
+        std::vector<float> title_b { 100, 300 };
 
-        std::vector<float> emp_a(_target.begin(), _target.begin() + 2);
-        std::vector<float> emp_b(_target.begin() + 2, _target.end());
+        std::vector<float> emp_a { 25, 50 };
+        std::vector<float> emp_b { 75, 100, 100, 300 };
 
-        CategoryTreatmentPlan<std::string> plan;
+        CategoryTreatmentPlan<std::string> title_plan;
+        CategoryTreatmentPlan<std::string> emp_plan;
         for (const auto& response: title_a) {
-            plan.add("Title A", response);
+            title_plan.add("Title A", response);
         }
 
         for (const auto& response: title_b) {
-            plan.add("Title B", response);
+            title_plan.add("Title B", response);
         }
 
         for (const auto& response: emp_a) {
-            plan.add("Employer A", response);
+            emp_plan.add("Employer A", response);
         }
 
         for (const auto& response: emp_b) {
-            plan.add("Employer B", response);
+            emp_plan.add("Employer B", response);
         }
 
         std::unordered_map<std::string, float> title_treated;
         std::unordered_map<std::string, float> emp_treated;
 
-        plan.build(title_treated, "NA");
-        plan.build(emp_treated, "NA");
+        title_plan.build(title_treated, "NA");
+        emp_plan.build(emp_treated, "NA");
+
+        CPPUNIT_ASSERT(3 == title_treated.size());
+        CPPUNIT_ASSERT(3 == emp_treated.size());
 
         float na_val = 108.333335f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(na_val, title_treated["NA"], _tolerance);
 
-        float title_a_expected = 63.8191184997559f;
-        float title_b_expected = 151.209671020508f;
+        float title_a_expected = 63.7023429870605f;
+        float title_b_expected = 153.389831542969f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(title_a_expected, title_treated["Title A"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(title_b_expected, title_treated["Title B"], _tolerance);
+
+        float emp_a_expected = 38.6267242431641f;
+        float emp_b_expected = 135.911819458008f;
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_a_expected, emp_treated["Employer A"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_b_expected, emp_treated["Employer B"], _tolerance);
     }
 }
 
