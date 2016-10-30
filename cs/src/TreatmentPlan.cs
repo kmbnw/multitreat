@@ -165,8 +165,9 @@ namespace kmbnw.Multitreat
     [TestFixture]
     public class CategoryTreatmentPlanTest
     {
+        private const float _tolerance = (float) 1e-6;
         [Test]
-        public void TestX()
+        public void TestBuild()
         {
             var target = new[] { 25, 50, 75, 100, 100, 300 }.Select(x => (float)x).ToArray();
 
@@ -184,38 +185,57 @@ namespace kmbnw.Multitreat
             var titleTreat = titlePlan.Build("NA");
             var empTreat = empPlan.Build("NA");
 
-            Console.WriteLine("Titles:");
-            foreach (var kv in titleTreat)
+            float naValue = 108.333335f;
+            Assert.AreEqual(naValue, titleTreat["NA"], _tolerance);
+            Assert.AreEqual(63.7023429f, titleTreat["A"], _tolerance);
+            Assert.AreEqual(153.3898315f, titleTreat["B"], _tolerance);
+
+            Assert.AreEqual(naValue, empTreat["NA"], _tolerance);
+            Assert.AreEqual(135.9118194f, empTreat["Evil Inc."], _tolerance);
+            Assert.AreEqual(38.6267242f, empTreat["Fake Inc."], _tolerance);
+        }
+
+        [Test]
+        public void TestBuildStdevZero() {
+            float response = 25.0f;
+            var plan = new CategoryTreatmentPlan<string>();
+
+            for (int i = 0; i < 20; ++i)
             {
-                Console.WriteLine("{0}: {1}", kv.Key, kv.Value);
-            }
-            Console.WriteLine("Employers:");
-            foreach (var kv in empTreat)
-            {
-                Console.WriteLine("{0}: {1}", kv.Key, kv.Value);
+                plan.Add("X1", response);
+                plan.Add("X2", response);
             }
 
-            var titleTreated = titles.Select(x => titleTreat[x]);
-            var empTreated = emps.Select(x => empTreat[x]);
+            var treated = plan.Build("NA");
 
-            Console.WriteLine("Titles: " + string.Join(", ", titleTreated));
-            Console.WriteLine("Employers: " + string.Join(", ", empTreated));
+            Assert.AreEqual(response, treated["X1"], _tolerance);
+            Assert.AreEqual(response, treated["X2"], _tolerance);
+            Assert.AreEqual(response, treated["NA"], _tolerance);
+        }
 
-            // TODO proper unit test
-            /* Expected output:
+        [Test]
+        public void TestBuildOneItem() {
+            float response = 523.0f;
+            var plan = new CategoryTreatmentPlan<string>();
 
-            Titles:
-            NA: 108.3333
-            A: 63.70234
-            B: 153.3898
-            Employers:
-            NA: 108.3333
-            Fake Inc.: 38.62672
-            Evil Inc.: 135.9118
-            Titles: 63.70234, 63.70234, 63.70234, 63.70234, 153.3898, 153.3898
-            Employers: 38.62672, 38.62672, 135.9118, 135.9118, 135.9118, 135.9118
-            */
-            //return 0;
+            plan.Add("X1", response);
+            plan.Add("X2", response);
+
+            var treated = plan.Build("NA");
+
+            Assert.AreEqual(3, treated.Count);
+            Assert.AreEqual(response, treated["X1"], _tolerance);
+            Assert.AreEqual(response, treated["X2"], _tolerance);
+            Assert.AreEqual(response, treated["NA"], _tolerance);
+        }
+
+        [Test]
+        public void TestBuildEmpty() {
+            var plan = new CategoryTreatmentPlan<string>();
+
+            var treated = plan.Build("NA");
+
+            Assert.AreEqual(0, treated.Count);
         }
     }
 }

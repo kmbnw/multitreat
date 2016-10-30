@@ -10,3 +10,6 @@ $(TARGET).dll: $(TARGET).cs
 
 clean:
 	$(RM) $(TARGET).dll
+
+tests: $(TARGET).dll
+	nunit-console $(TARGET).dll
