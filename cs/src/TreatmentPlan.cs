@@ -91,7 +91,7 @@ namespace kmbnw.Multitreat
         /// value to represent the encoding for missing values.
         /// </param>
         /// <returns>A dictionary from category to re-encoded response.</returns>
-        public Dictionary<K, float> Build(K naValue)
+        public IDictionary<K, float> Build(K naValue)
         {
             var treatment = new Dictionary<K, float>();
             if (_count < 1)

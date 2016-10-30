@@ -1,11 +1,11 @@
 include ../Makefile.inc
 
-TARGET := TreatmentPlanTest.dll
+TARGET := ../lib/TreatmentPlanTest.dll
 
 all: $(TARGET)
 
 $(TARGET): *.cs
-	$(cc-command) *.cs -pkg:nunit -r:../lib/TreatmentPlan.dll -out:$(TARGET)
+	$(cc-command) *.cs -pkg:nunit -r:../lib/$(SHARED_OBJ) -out:$(TARGET)
 
 clean:
 	$(RM) $(TARGET)
