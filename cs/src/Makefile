@@ -1,15 +1,12 @@
-CC := mcs
+include ../Makefile.inc
 
-TARGET := TreatmentPlan
-NUNIT := /usr/lib/cli/nunit.framework-2.6.3
+TARGET := ../$(LIBDIR)$(SHARED_OBJ)
 
-all: $(TARGET).dll
+all: $(TARGET)
 
-$(TARGET).dll: $(TARGET).cs
-	$(CC) $(TARGET).cs -pkg:nunit -out:$(TARGET).dll -target:library
+$(TARGET): *.cs
+	mkdir -p ../$(LIBDIR)
+	$(cc-command) *.cs -out:$(TARGET)
 
 clean:
-	$(RM) $(TARGET).dll
-
-tests: $(TARGET).dll
-	nunit-console $(TARGET).dll
+	$(RM) $(TARGET)
