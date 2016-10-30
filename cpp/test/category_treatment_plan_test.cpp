@@ -79,28 +79,17 @@ namespace multitreat {
 
     // happy path testing
     void CategoryTreatmentPlanTest::test_build() {
-        std::vector<float> title_a { 25, 50, 75, 100 };
-        std::vector<float> title_b { 100, 300 };
+        std::vector<float> target { 25, 50, 75, 100, 100, 300 };
 
-        std::vector<float> emp_a { 25, 50 };
-        std::vector<float> emp_b { 75, 100, 100, 300 };
+        std::vector<std::string> titles { "A", "A", "A", "A", "B", "B" };
+        std::vector<std::string> emps { "Fake Inc.", "Fake Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc.", "Evil Inc." };
 
         CategoryTreatmentPlan<std::string> title_plan;
         CategoryTreatmentPlan<std::string> emp_plan;
-        for (const auto& response: title_a) {
-            title_plan.add("Title A", response);
-        }
 
-        for (const auto& response: title_b) {
-            title_plan.add("Title B", response);
-        }
-
-        for (const auto& response: emp_a) {
-            emp_plan.add("Employer A", response);
-        }
-
-        for (const auto& response: emp_b) {
-            emp_plan.add("Employer B", response);
+        for (size_t i = 0; i < target.size(); ++i) {
+            title_plan.add(titles[i], target[i]);
+            emp_plan.add(emps[i], target[i]);
         }
 
         std::unordered_map<std::string, float> title_treated;
@@ -117,13 +106,13 @@ namespace multitreat {
 
         float title_a_expected = 63.7023429870605f;
         float title_b_expected = 153.389831542969f;
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(title_a_expected, title_treated["Title A"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(title_b_expected, title_treated["Title B"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(title_a_expected, title_treated["A"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(title_b_expected, title_treated["B"], _tolerance);
 
         float emp_a_expected = 38.6267242431641f;
         float emp_b_expected = 135.911819458008f;
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_a_expected, emp_treated["Employer A"], _tolerance);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_b_expected, emp_treated["Employer B"], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_a_expected, emp_treated["Fake Inc."], _tolerance);
+        CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_b_expected, emp_treated["Evil Inc."], _tolerance);
     }
 }
 

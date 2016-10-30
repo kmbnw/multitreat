@@ -81,7 +81,7 @@ namespace multitreat {
             const K &na_value) const {
 
         if (_count < 1) {
-            // this is a meaningless operation
+            // nothing to calculate on
             return;
         }
 
