@@ -20,6 +20,9 @@
 #define KMBNW_MULTITREAT_H
 
 namespace multitreat {
+    /**
+     * Online computation of Bayes-adjusted response for categorical features.
+     */
     template <class K>
     class CategoryTreatmentPlan {
         public:
