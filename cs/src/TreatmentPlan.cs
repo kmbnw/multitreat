@@ -156,7 +156,7 @@ namespace kmbnw.Multitreat
         }
 
         private static double StdDevFromM2(ulong count, double m2Stdev) {
-            return count < 2 ? double.NaN : m2Stdev / (count - 1);
+            return count < 2 ? double.NaN : Math.Sqrt(m2Stdev / (count - 1));
         }
     }
 }

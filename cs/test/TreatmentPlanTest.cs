@@ -50,12 +50,12 @@ namespace kmbnw.MultitreatTest
 
             float naValue = 108.333335f;
             Assert.AreEqual(naValue, titleTreat["NA"], _tolerance);
-            Assert.AreEqual(63.7023429f, titleTreat["A"], _tolerance);
-            Assert.AreEqual(153.3898315f, titleTreat["B"], _tolerance);
+            Assert.AreEqual(65.97610994f, titleTreat["A"], _tolerance);
+            Assert.AreEqual(161.6528632f, titleTreat["B"], _tolerance);
 
             Assert.AreEqual(naValue, empTreat["NA"], _tolerance);
-            Assert.AreEqual(135.9118194f, empTreat["Evil Inc."], _tolerance);
-            Assert.AreEqual(38.6267242f, empTreat["Fake Inc."], _tolerance);
+            Assert.AreEqual(136.2962514f, empTreat["Evil Inc."], _tolerance);
+            Assert.AreEqual(43.34262378f, empTreat["Fake Inc."], _tolerance);
         }
 
         [Test]
