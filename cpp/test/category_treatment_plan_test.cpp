@@ -104,13 +104,13 @@ namespace multitreat {
         float na_val = 108.333335f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(na_val, title_treated["NA"], _tolerance);
 
-        float title_a_expected = 63.7023429870605f;
-        float title_b_expected = 153.389831542969f;
+        float title_a_expected = 65.97610994f;
+        float title_b_expected = 161.6528632f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(title_a_expected, title_treated["A"], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(title_b_expected, title_treated["B"], _tolerance);
 
-        float emp_a_expected = 38.6267242431641f;
-        float emp_b_expected = 135.911819458008f;
+        float emp_a_expected = 43.34262378f;
+        float emp_b_expected = 136.2962514f;
         CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_a_expected, emp_treated["Fake Inc."], _tolerance);
         CPPUNIT_ASSERT_DOUBLES_EQUAL(emp_b_expected, emp_treated["Evil Inc."], _tolerance);
     }

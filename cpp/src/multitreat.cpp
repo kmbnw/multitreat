@@ -37,7 +37,7 @@ namespace multitreat {
     }
 
     double std_dev_from_m2(const unsigned long& count, const double& m2_stdev) {
-        return count < 2 ? nan("") : m2_stdev / (count - 1);
+        return count < 2 ? nan("") : sqrt(m2_stdev / (count - 1));
     }
 
     template <class K>
